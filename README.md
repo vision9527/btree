@@ -38,7 +38,31 @@
     * 约保存1千万左右数据
 
 #### 5、查询
-#### 6、更新
+伪代码
+```
+    search(key, node) value
+        {
+            /* search next node until leaf node */
+            node = binary_internal(key, node)
+            if (node != leaf node) {
+                return search(key, node)
+            } else {
+                value = binary_leaf(key, node)
+                return value
+            }
+        }
+    
+    /* bin search */
+    binary_internal(key, node)
+    binary_leaf(key, node)
+```
+
+#### 6、插入/更新
+伪代码
+```
+asd
+```
+
 #### 7、删除
 #### 8、增删改的时间复杂度、空间复杂度、填充因子
 #### 9、其它：
