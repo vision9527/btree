@@ -36,27 +36,49 @@
 #### 4、查询
 伪代码
 ```
-    search(key, node) value
+    search(x) value
         {
-            /* search next node until leaf node */
-            node = binary_internal(key, node)
-            if (node != leaf node) {
-                return search(key, node)
-            } else {
-                value = binary_leaf(key, node)
-                return value
+            /* ---------------------------------------------------------
+                search next node until leaf node 
+                let:
+                    node is current node
+                    internal node = keys + ptrs
+                    internal node : |p1|k1|p2|k2|....|pn|kn|next|
+                    leaf node = keys + values
+                    leaf node : |v1|k1|v2|k2|....|vn|kn|next|
+                ---------------------------------------------------------
+            */
+            node = root
+            for {
+                if node != leaf node {
+                    find_flag := false
+                    for i := 0; i < len(keys)-1;i++ {
+                        if x < keys[i] {
+                            node = ptrs[i]
+                            find_flag = true
+                            break
+                        }
+
+                    }
+                    if !find_flag {
+                        node = next
+                    }
+                } else {
+                    for i, key := range keys {
+                        if x == key {
+                            return values[i]
+                        }
+                    }
+                    return nil
+                }
             }
         }
-    
-    /* bin search */
-    binary_internal(key, node)
-    binary_leaf(key, node)
 ```
 
 #### 5、插入/更新
 伪代码
 ```
-asd
+
 ```
 
 #### 6、删除
