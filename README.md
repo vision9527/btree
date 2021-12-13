@@ -24,10 +24,10 @@
     * 叶子节点：假设，n个索引，n+1指针，block大小4096B，一个数据64B，一个索引4B
         * 64\*n+4\*(n+1) = 4096
         * n = 60
-1. 最大、最小节点的数量，n代表key的数量
-    * 根节点含子节点的个数：2<= node <= n+1
-    * 内部节点包含子节点的个数：(n+1)/2 < node <= n+1
-    * 叶子节点包含数据的个数：n/2 < node <= n
+1. 最大、最小节点的数量
+    * 根节点含子节点的个数：2<= node ptrs <= n+1
+    * 内部节点包含子节点的个数：(n+1)/2 < node ptrs <= n+1
+    * 叶子节点包含数据的个数：n/2 < record ptrs(keys) <= n
 
 1. 一般3层高度的B+树即可保存千万级别的数据，如何计算一颗B+树能保存的数据量？
     * 根据以上的计算数据可推出，512 * 512 * 60 = 15728640
@@ -78,6 +78,66 @@
 #### 5、插入/更新
 伪代码
 ```
+insert(x, v)
+search node
+L = leaf node need to be insert
+if x in L {
+    update (x, v) in L
+    return
+}
+if L != full {
+    insert {x, v} to L
+} else {
+    virtual node = L = node of insert (x, v) to L 
+    m = middle key in L ([n+1]/2)
+    R = right of L
+    split virtual node(L) to L and R according to m
+    L link to R
+    if L is root {
+        make a new root containint (L, m, R)
+    } else {
+        insertInternal(m, R, Parent(L))
+    }
+    
+}
+
+insertInternal(m, Rx, N) {
+    if N != full {
+        insert {m, Rx} to N
+    } else {
+        virtual node = L = node of insert (x, v) to L 
+        m = middle key in L
+        R = right of L
+        split virtual node(L) to L and R according to m
+        (m, Rm) link to R
+        if L is root {
+            make a new root containint (L, m, R)
+        } else {
+            insertInternal(m, Rm, Parent(N))
+        }
+    }
+}
+
+
+splitLeaf(m, V) L, R{
+    R = new Node
+    for k, v in V {
+        if key >= m {
+            append (k, v) to R
+        }
+    }
+    R.next = L.next
+    L.next = R
+}
+
+splitInternal(m, V) L, R {
+    R = new Node
+    for k, v in V {
+        if key >= m {
+            append (k, v) to R
+        }
+    }
+}
 
 ```
 
