@@ -75,68 +75,57 @@
         }
 ```
 
-#### 5、插入/更新
+#### 5、插入
 伪代码
 ```
-insert(x, v)
-search node
-L = leaf node need to be insert
-if x in L {
-    update (x, v) in L
-    return
-}
-if L != full {
-    insert {x, v} to L
-} else {
-    virtual node = L = node of insert (x, v) to L 
-    m = middle key in L ([n+1]/2)
-    R = right of L
-    split virtual node(L) to L and R according to m
-    L link to R
-    if L is root {
-        make a new root containint (L, m, R)
+insert(x, v) {
+    search node
+    L = leaf node need to be insert
+    if L != full {
+        insert_to_leaf(x, v, N) to L
     } else {
-        insertInternal(m, R, Parent(L))
-    }
-    
-}
-
-insertInternal(m, Rx, N) {
-    if N != full {
-        insert {m, Rx} to N
-    } else {
-        virtual node = L = node of insert (x, v) to L 
-        m = middle key in L
-        R = right of L
-        split virtual node(L) to L and R according to m
-        (m, Rm) link to R
+        make a virtual node T can hold N and (x, v) by copy of L in memory
+        insert_to_leaf(x, v, T) to virtual node
+        m = middle key in L ([n+1]/2)
+        R = new node()
+        copy the left of virtual node T to L according to m
+        copy the right of virtual node T to L according to m
+        R link to L.next
+        L.next link to R
         if L is root {
-            make a new root containint (L, m, R)
+            make a new root containing (L, m, R)
         } else {
-            insertInternal(m, Rm, Parent(N))
+            insertInternal(m, Pr, L.parent)
+    }   
+}
+
+insert_to_leaf(x, v, N) {
+    Let Ki is the smallest value in N that is great than x
+    insert(x, v) to N before N.Ki
+}
+
+insertInternal(m, Pr, N) {
+    if N != full {
+        insert_to_internal(m, Pr, N) to N
+    } else {
+        make a virtual node T can hold N and (m, Pr) by copy of N in memory
+        insert_to_internal(m, Pr, T) to virtual node
+        m = middle key in N ([n+1]/2)
+        erase all entries in N
+        R = new node()
+        copy the left of virtual node T to N according to m
+        copy the right of virtual node T to R according to m
+        if L is root {
+            make a new root containint (N, m, R)
+        } else {
+            insertInternal(m, R, N.parent)
         }
     }
 }
 
-
-splitLeaf(m, V) L, R{
-    R = new Node
-    for k, v in V {
-        if key >= m {
-            append (k, v) to R
-        }
-    }
-    R.next = L.next
-    L.next = R
-}
-
-splitInternal(m, V) L, R {
-    R = new Node
-    for k, v in V {
-        if key >= m {
-            append (k, v) to R
-        }
-    }
+insert_to_internal(m, Pr, N) {
+    Let Ki is the smallest value in N that is great than x
+    insert(m, Pr) to N before N.Ki
 }
 
 ```
