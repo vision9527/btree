@@ -30,6 +30,7 @@ func TestFind_RootIsLeaf(t *testing.T) {
 }
 
 func TestFind_RootIsInternalNode(t *testing.T) {
+	// TODO
 }
 
 func TestInsert(t *testing.T) {
@@ -51,4 +52,8 @@ func TestInsert(t *testing.T) {
 		return
 	}
 	tree.Print()
+}
+
+func TestDelete(t *testing.T) {
+	// TODO
 }
