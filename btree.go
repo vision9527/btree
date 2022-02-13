@@ -1,256 +1,109 @@
 package main
 
-import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"strings"
-)
+import "strings"
 
-const (
-	SizeInternalNode int = 3 // 包含尾部的指针
-	SizeLeafNode     int = 3 // 不包含下一个叶子节点的指针，下一个叶子节点保存在NextNode
-)
-
-type InternalNode struct {
-	Pairs      [SizeInternalNode]*Element // element.value: internalNode, leafNode
-	Size       int
-	ParentNode *InternalNode
+type BPlusTree struct {
+	// 叶子结点指针最多数量, key半满条件: (leafMaxSize-1)/2
+	leafMaxSize int
+	// 非叶子结点指针最多数量, 指针半满条件: internalMaxSize/2，指针的数量叫做fanout
+	internalMaxSize int
+	// 0个或者2-n个子节点
+	root *Node
 }
 
-type LeafNode struct {
-	Pairs      [SizeLeafNode]*Element // element.value: string
-	Size       int
-	NextNode   *LeafNode
-	ParentNode *InternalNode
+type Node struct {
+	// 是否是叶子结点
+	isLeaf bool
+	keys   []Key
+	// 非叶子结点是*Node，叶子结点是*Record, 最后一个指针挪到了lastOrNextNode
+	// 所以len(keys)=len(pointers)
+	pointers []interface{}
+	parent   *Node
+	// 最后一个指针
+	lastOrNextNode *Node
 }
 
-type Element struct {
-	Key   string
-	Value interface{}
+type Key string
+
+func (k Key) Compare(target Key) int {
+	return strings.Compare(k.toString(), target.toString())
 }
 
-type Tree struct {
-	Root interface{}
+func (k Key) toString() string {
+	return string(k)
 }
 
-func NewTree() *Tree {
-	return new(Tree)
+type Record struct {
+	value []byte
 }
 
-func (t *Tree) Print() {
-	data, _ := json.Marshal(t)
-	fmt.Println(string(data))
-}
-
-func (t *Tree) Delete(key string) error {
-	// TODO
-	return nil
-}
-
-func (t *Tree) Find(key string) (string, bool) {
-	leafNode, err := t.SearchLeafNode(key)
-	if err != nil {
-		panic(err)
+func StartNewTree(leafMaxSize, internalMaxSize int) *BPlusTree {
+	return &BPlusTree{
+		leafMaxSize:     leafMaxSize,
+		internalMaxSize: internalMaxSize,
 	}
-	if leafNode == nil {
-		panic("not found leafnode")
-	}
+}
 
-	for i := 0; i < leafNode.Size; i++ {
-		pair := leafNode.Pairs[i]
-		if pair.Key == key {
-			result, ok := pair.Value.(string)
-			if !ok {
-				panic("wrong leaf value")
+// 功能接口
+func (b *BPlusTree) Insert(key, value string) {}
+func (b *BPlusTree) Remove(key string)        {}
+func (b *BPlusTree) Find(targetKey string) (string, bool) {
+	tKey := Key(targetKey)
+	currentNode := b.root
+	for !currentNode.isLeaf {
+		number := -1
+		for i, key := range currentNode.keys {
+			if tKey.Compare(key) == 0 {
+				number = i + 1
+				break
+			} else if tKey.Compare(key) < 1 {
+				number = i
+				break
 			}
-			return result, true
+		}
+		var ok bool
+		if number == -1 || number == len(currentNode.keys) {
+			currentNode = currentNode.lastOrNextNode
+		} else {
+			currentNode, ok = currentNode.pointers[number].(*Node)
+			if !ok {
+				panic("should be *node")
+			}
+		}
+	}
+	if !currentNode.isLeaf {
+		panic("should be leaf node")
+	}
+	return currentNode.findRecord(tKey)
+}
+func (b *BPlusTree) FindRange(start, end string) []string {
+	return []string{}
+}
+
+func (b *BPlusTree) Print() {}
+
+// 内部方法
+func (b *BPlusTree) insertIntoLeaf(key, value string)                        {}
+func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node)                 {}
+func (b *BPlusTree) split(node *Node)                                        {}
+func (b *BPlusTree) delete(key string, pointer interface{})                  {}
+func (b *BPlusTree) deleteEntry(node *Node, key string, pointer interface{}) {}
+
+func (n *Node) findRecord(targetKey Key) (string, bool) {
+	if !n.isLeaf {
+		panic("not leaf node")
+	}
+	if len(n.keys) == 0 {
+		return "", false
+	}
+	for i, key := range n.keys {
+		if key.Compare(targetKey) == 0 {
+			record := n.pointers[i]
+			if value, ok := record.(*Record); ok {
+				return string(value.value), true
+			}
+			panic("should be record")
 		}
 	}
 	return "", false
-}
-
-func (t *Tree) SearchLeafNode(key string) (*LeafNode, error) {
-	if t.Root == nil {
-		return nil, nil
-	}
-	if leafNode, ok := t.Root.(*LeafNode); ok {
-		return leafNode, nil
-	}
-	currentNode := t.Root
-	for {
-	StartCurrentNode:
-		if node, ok := currentNode.(*LeafNode); ok {
-			return node, nil
-		}
-		node, ok := currentNode.(*InternalNode)
-		if !ok {
-			return nil, errors.New("wrong node type")
-		}
-		for i := 0; i < node.Size-1; i++ {
-			pair := node.Pairs[i]
-			if strings.Compare(key, pair.Key) < 0 {
-				currentNode = pair.Value
-				goto StartCurrentNode
-			}
-		}
-		currentNode = node.Pairs[node.Size-1].Value
-		break
-	}
-	if leafNode, ok := currentNode.(*LeafNode); ok {
-		return leafNode, nil
-	}
-	return nil, errors.New("not found leaf node")
-}
-
-func (t *Tree) Insert(key, value string) error {
-	if t.Root == nil {
-		root := &LeafNode{
-			Pairs: [SizeLeafNode]*Element{
-				{Key: key, Value: value},
-			},
-			Size: 1,
-		}
-		t.Root = root
-		return nil
-	}
-	leafNode, err := t.SearchLeafNode(key)
-	if err != nil {
-		return err
-	}
-	if leafNode == nil {
-		return errors.New("Insert not found leaf node")
-	}
-	if leafNode.Size < SizeLeafNode {
-		return leafNode.InsertToLeaf(key, value)
-	} else {
-		tempPair := t.MakeTempPairs(key, value, leafNode)
-		m := SizeLeafNode / 2
-		mKey := tempPair[m].Key
-		rNode := new(LeafNode)
-		copy(leafNode.Pairs[0:], tempPair[0:m])
-		copy(rNode.Pairs[0:], tempPair[m:SizeLeafNode])
-		rNode.NextNode = leafNode.NextNode
-		leafNode.NextNode = rNode
-		rNode.ParentNode = leafNode.ParentNode
-		if leafNode.ParentNode == nil {
-			root := &InternalNode{
-				Pairs: [SizeInternalNode]*Element{
-					{Key: mKey, Value: leafNode},
-					{Key: "", Value: rNode},
-				},
-				Size: 2,
-			}
-			t.Root = root
-			return nil
-		} else {
-			return t.InsertInternal(mKey, rNode, leafNode.ParentNode)
-		}
-
-	}
-}
-
-func (t *Tree) InsertInternal(key string, ptr interface{}, interN *InternalNode) error {
-	if interN.Size < SizeInternalNode {
-		return interN.InsertToInternal(key, ptr)
-	} else {
-		tempPair := t.MakeTempPairs(key, ptr, interN)
-		m := SizeInternalNode / 2
-		mKey := tempPair[m].Key
-		rNode := new(InternalNode)
-		copy(interN.Pairs[0:], tempPair[0:m])
-		copy(rNode.Pairs[0:], tempPair[m:SizeInternalNode])
-		rNode.ParentNode = interN.ParentNode
-		if interN.ParentNode == nil {
-			root := &InternalNode{
-				Pairs: [SizeInternalNode]*Element{
-					{Key: mKey, Value: interN},
-					{Key: "", Value: rNode},
-				},
-				Size: 2,
-			}
-			t.Root = root
-			return nil
-		} else {
-			return t.InsertInternal(mKey, rNode, interN.ParentNode)
-		}
-	}
-}
-
-func (t *Tree) MakeTempPairs(key string, value, node interface{}) []*Element {
-	n, ok := node.(*LeafNode)
-	temp := make([]*Element, 0, 100)
-	if ok {
-
-		var flag bool
-		for i := 0; i < n.Size; i++ {
-			ele := n.Pairs[i]
-			if !flag && strings.Compare(key, ele.Key) < 0 {
-				temp = append(temp, &Element{Key: key, Value: value})
-				flag = true
-			}
-			temp = append(temp, ele)
-		}
-		return temp
-	}
-	n2, ok2 := node.(*InternalNode)
-	if ok2 {
-		var flag bool
-		for i := 0; i < n2.Size; i++ {
-			ele := n2.Pairs[i]
-			if !flag && strings.Compare(key, ele.Key) < 0 {
-				temp = append(temp, &Element{Key: key, Value: value})
-				flag = true
-			}
-			temp = append(temp, ele)
-		}
-		return temp
-	}
-	return temp
-
-}
-
-func (leaf *LeafNode) InsertToLeaf(key, value string) error {
-	temp := make([]*Element, 0, SizeLeafNode)
-	var flag bool
-	for i := 0; i < leaf.Size; i++ {
-		ele := leaf.Pairs[i]
-		if !flag && strings.Compare(key, ele.Key) < 0 {
-			temp = append(temp, &Element{Key: key, Value: value})
-			flag = true
-		}
-		temp = append(temp, ele)
-	}
-	if !flag {
-		temp = append(temp, &Element{Key: key, Value: value})
-	}
-	for i := 0; i < leaf.Size+1; i++ {
-		leaf.Pairs[i] = temp[i]
-	}
-	leaf.Size++
-	if leaf.Size > SizeLeafNode {
-		return errors.New("wrong leaf node count")
-	}
-	return nil
-}
-
-func (interN *InternalNode) InsertToInternal(key string, Ptr interface{}) error {
-	temp := make([]*Element, 0, SizeInternalNode)
-	var flag bool
-	for i := 0; i < interN.Size; i++ {
-		ele := interN.Pairs[i]
-		if !flag && strings.Compare(key, ele.Key) < 0 {
-			temp = append(temp, &Element{Key: key, Value: Ptr})
-			flag = true
-		}
-		temp = append(temp, ele)
-	}
-	for i := 0; i < interN.Size+1; i++ {
-		interN.Pairs[i] = temp[i]
-	}
-	interN.Size++
-	if interN.Size > SizeInternalNode {
-		return errors.New("wrong internal node count")
-	}
-	return nil
 }
