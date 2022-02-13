@@ -104,4 +104,79 @@ func TestBPlusTreeFind_findRecord(t *testing.T) {
 	if v != "Singh_value" {
 		t.Fatalf("find Singh_value, but not correct")
 	}
+	v, ok = leafNode.findRecord(Key("trump"))
+	if ok {
+		t.Fatalf("should not find trump value")
+	}
+}
+
+func TestBPlusTree_insertIntoLeaf(t *testing.T) {
+	tree := StartNewTree(6, 6)
+	leafNode := makeLeafNode([]string{"key1", "key2", "key4", "key5"},
+		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
+	targetKey := Key("key3")
+	record := &Record{
+		value: []byte("key3_value"),
+	}
+	tree.insertIntoLeaf(leafNode, targetKey, record)
+	if targetKey.Compare(leafNode.keys[2]) != 0 {
+		t.Fatalf("should be key3")
+	}
+	r, ok := leafNode.pointers[2].(*Record)
+	if !ok {
+		t.Fatalf("should be record")
+	}
+	if string(r.value) != "key3_value" {
+		t.Fatalf("should be key3_value")
+	}
+	t.Logf("keys: %v", leafNode.keys)
+	values := make([]string, 0)
+	for _, i := range leafNode.pointers {
+		r, _ := i.(*Record)
+		values = append(values, string(r.value))
+	}
+	t.Logf("record: %v", values)
+	targetKey = Key("key0")
+	record = &Record{
+		value: []byte("key0_value"),
+	}
+	tree.insertIntoLeaf(leafNode, targetKey, record)
+	if targetKey.Compare(leafNode.keys[0]) != 0 {
+		t.Fatalf("should be key0")
+	}
+	t.Logf("keys: %v", leafNode.keys)
+	targetKey = Key("key6")
+	record = &Record{
+		value: []byte("key6_value"),
+	}
+	tree.insertIntoLeaf(leafNode, targetKey, record)
+	if targetKey.Compare(leafNode.keys[6]) != 0 {
+		t.Fatalf("should be key6")
+	}
+	r, ok = leafNode.pointers[6].(*Record)
+	if !ok {
+		t.Fatalf("should be record")
+	}
+	if string(r.value) != "key6_value" {
+		t.Fatalf("should be key6_value")
+	}
+	t.Logf("keys: %v", leafNode.keys)
+}
+
+func TestBPlusTree_updateRecord(t *testing.T) {
+	leafNode := makeLeafNode([]string{"key1", "key2", "key4", "key5"},
+		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
+	targetKey := Key("key2")
+	record := &Record{
+		value: []byte("key2222_value"),
+	}
+	leafNode.updateRecord(targetKey, record)
+	r, ok := leafNode.pointers[1].(*Record)
+	if !ok {
+		t.Fatalf("should be record")
+	}
+	if string(r.value) != "key2222_value" {
+		t.Fatalf("should be key2222_value, actully value: %v", string(r.value))
+	}
+	t.Logf("keys: %v", leafNode.keys)
 }
