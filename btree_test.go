@@ -180,3 +180,38 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 	}
 	t.Logf("keys: %v", leafNode.keys)
 }
+
+func TestInsert(t *testing.T) {
+	tree := StartNewTree(4, 4)
+	tree.Insert("key1", "value1")
+	tree.Insert("key2", "value2")
+	tree.Insert("key3", "value3")
+	tree.Insert("key4", "value4")
+	tree.Insert("key5", "value5")
+	tree.Insert("key6", "value6")
+	tree.Insert("key6", "value6")
+	tree.Insert("key7", "value7")
+	tree.Insert("key8", "value8")
+	tree.Insert("key9", "value9")
+	tree.Insert("key10", "value10")
+	tree.Insert("key11", "value11")
+	tree.Insert("key12", "value12")
+	tree.Insert("key13", "value13")
+	tree.Insert("key14", "value14")
+	v, _ := tree.Find("key1")
+	if v != "value1" {
+		t.Fatalf("value should be value1, but value:%s", v)
+	}
+	v, _ = tree.Find("key2")
+	if v != "value2" {
+		t.Fatalf("value should be value2, , but value:%s", v)
+	}
+	v, ok := tree.Find("key0")
+	if ok {
+		t.Fatalf("value should not exsit")
+	}
+	if v != "" {
+		t.Fatalf("value should be empty")
+	}
+	tree.Print()
+}
