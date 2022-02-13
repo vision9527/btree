@@ -198,6 +198,7 @@ func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Record)
 	leafNode.pointers = tempPointers
 }
 func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
+	fmt.Println("insertIntoParent", childKey)
 	if oldNode.parent == nil {
 		newRoot := makeEmptyInternalNode()
 		newRoot.keys = append(newRoot.keys, childKey)
@@ -210,11 +211,13 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 	}
 	parentNode := oldNode.parent
 	if len(parentNode.keys) < b.internalMaxSize {
+		fmt.Println("split len(parentNode.keys):", len(parentNode.keys), b.internalMaxSize)
 		// insert (childKey, newNode) to parentNode after oldNode
 		parentNode.insertNextAfterPrev(childKey, oldNode, newNode)
 		return
 	} else {
 		// split
+		fmt.Println("split")
 		tempNode := parentNode.copy()
 		tempNode.insertNextAfterPrev(childKey, oldNode, newNode)
 		parentNode.keys = make([]Key, 0)
@@ -229,8 +232,9 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		}
 		parentNode.lastOrNextNode = lst
 		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.internalMaxSize/2+1:]...)
-		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.internalMaxSize/2+1:b.internalMaxSize-1]...)
+		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.internalMaxSize/2:]...)
 		siblingNode.lastOrNextNode = parentNodeLastOrNextNodePointer
+		siblingNode.parent = parentNode.parent
 		childKeyTwo := tempNode.keys[b.internalMaxSize/2+1]
 		b.insertIntoParent(parentNode, siblingNode, childKeyTwo)
 	}

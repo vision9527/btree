@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func makeLeafNode(keys []string, values []string) *Node {
 	n := &Node{
@@ -187,17 +190,21 @@ func TestInsert(t *testing.T) {
 	tree.Insert("key2", "value2")
 	tree.Insert("key3", "value3")
 	tree.Insert("key4", "value4")
+	fmt.Println("---------44444")
+	tree.Print()
 	tree.Insert("key5", "value5")
+	fmt.Println("---------55555")
+	tree.Print()
 	tree.Insert("key6", "value6")
-	tree.Insert("key6", "value6")
-	tree.Insert("key7", "value7")
-	tree.Insert("key8", "value8")
-	tree.Insert("key9", "value9")
-	tree.Insert("key10", "value10")
-	tree.Insert("key11", "value11")
-	tree.Insert("key12", "value12")
-	tree.Insert("key13", "value13")
-	tree.Insert("key14", "value14")
+	fmt.Println("---------66666")
+	tree.Print()
+	// tree.Insert("key8", "value8")
+	// tree.Insert("key9", "value9")
+	// tree.Insert("key10", "value10")
+	// tree.Insert("key11", "value11")
+	// tree.Insert("key12", "value12")
+	// tree.Insert("key13", "value13")
+	// tree.Insert("key14", "value14")
 	v, _ := tree.Find("key1")
 	if v != "value1" {
 		t.Fatalf("value should be value1, but value:%s", v)
@@ -213,5 +220,5 @@ func TestInsert(t *testing.T) {
 	if v != "" {
 		t.Fatalf("value should be empty")
 	}
-	tree.Print()
+
 }
