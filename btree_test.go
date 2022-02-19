@@ -22,6 +22,28 @@ func makeTestLeafNode(keys []string, values []string) *Node {
 	return n
 }
 
+func GenTestKeyAndValue(repeatNum int) ([]string, []string) {
+	str := "abcdefghijklmnopqrstuvwxyz"
+	keys := make([]string, 0)
+	values := make([]string, 0)
+	for _, i := range str {
+		s := ""
+		for j := 0; j < repeatNum; j++ {
+			s = s + string(i)
+			keys = append(keys, s)
+			values = append(values, s)
+		}
+
+	}
+	return keys, values
+}
+
+func TestGenTestKeyAndValue_Print(t *testing.T) {
+	keys, values := GenTestKeyAndValue(3)
+	fmt.Println("test_keys:", keys)
+	fmt.Println("test_values:", values)
+}
+
 func TestBPlusTreeFind_rootDontHaveChild(t *testing.T) {
 	tree := StartNewTree(4, 4)
 	root := &Node{
@@ -184,7 +206,7 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 	t.Logf("keys: %v", leafNode.keys)
 }
 
-func TestInsert(t *testing.T) {
+func TestInsertCaseOne(t *testing.T) {
 	tree := StartNewTree(3, 3)
 	tree.Insert("a", "a")
 	tree.Insert("b", "b")
@@ -248,6 +270,50 @@ func TestInsert(t *testing.T) {
 	}
 	if v != "" {
 		t.Fatalf("value should be empty")
+	}
+
+}
+
+// 小fanout， 多key，value
+func TestInsertCaseTwo(t *testing.T) {
+	tree := StartNewTree(2, 2)
+	keys, values := GenTestKeyAndValue(4)
+	for i := 0; i < len(keys); i++ {
+		tree.Insert(keys[i], values[i])
+	}
+	tree.Print()
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		value := values[i]
+		v, ok := tree.Find(key)
+		if !ok {
+			t.Fatalf("value should exsit")
+		}
+		if v != value {
+			t.Fatalf("value should be %s, but value:%s", key, v)
+		}
+	}
+
+}
+
+// 小fanout，乱序插入
+func TestInsertCaseThree(t *testing.T) {
+	tree := StartNewTree(2, 2)
+	keys, values := GenTestKeyAndValue(4)
+	for i := 0; i < len(keys); i++ {
+		tree.Insert(keys[i], values[i])
+	}
+	tree.Print()
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		value := values[i]
+		v, ok := tree.Find(key)
+		if !ok {
+			t.Fatalf("value should exsit")
+		}
+		if v != value {
+			t.Fatalf("value should be %s, but value:%s", key, v)
+		}
 	}
 
 }

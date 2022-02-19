@@ -77,9 +77,6 @@ func (b *BPlusTree) Insert(key, value string) {
 func (b *BPlusTree) Remove(key string) {}
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
-	if targetKey == "g" {
-		fmt.Println("findleaf g:", leafNode)
-	}
 	return leafNode.findRecord(Key(targetKey))
 }
 func (b *BPlusTree) FindRange(start, end string) []string {
@@ -164,8 +161,6 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 	if leafNode.updateRecord(targetKey, record) {
 		return
 	}
-	// fmt.Println("leafNode:", leafNode)
-	// fmt.Printf("leafNode: %v, parent:%v\n", leafNode, leafNode.parent)
 	if len(leafNode.keys) < b.leafMaxSize {
 		b.insertIntoLeaf(leafNode, targetKey, record)
 	} else {
@@ -182,16 +177,9 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 		leafNode.pointers = make([]interface{}, 0)
 		leafNode.keys = append(leafNode.keys, tempNode.keys[0:b.leafMaxSize/2+1]...)
 		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:b.leafMaxSize/2+1]...)
-
 		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.leafMaxSize/2+1:]...)
 		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2+1:]...)
-		// fmt.Println("leafNode.keys:", leafNode.keys, siblingNode.keys)
-		// siblingNode.parent = leafNode.parent
 		childKey := siblingNode.keys[0]
-		fmt.Println("tempNode:", tempNode.keys)
-		fmt.Println("leafNode:", leafNode.keys)
-		fmt.Println("siblingNode:", siblingNode.keys)
-		fmt.Printf("leafNode.parent:%v %v childKey:%s\n", leafNode.parent, leafNode.keys, childKey)
 		b.insertIntoParent(leafNode, siblingNode, childKey)
 	}
 }
@@ -271,21 +259,11 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		return
 	} else {
 		// split
-		fmt.Println("split")
 		tempNode := parentNode.copy()
 		tempNode.insertNextAfterPrev(childKey, oldNode, newNode)
 		tempKeys := tempNode.keys
 		tempPointers := tempNode.pointers
 		tempPointers = append(tempPointers, tempNode.lastOrNextNode)
-		fmt.Println("tempKeys:", tempKeys)
-		fmt.Printf("tempPointers:%v \n", tempPointers)
-		// print---
-		for _, i := range tempPointers {
-			if a, ok := i.(*Node); ok {
-				fmt.Println("aaa:", a.keys)
-			}
-		}
-		// print---
 		parentNode.keys = make([]Key, 0)
 		parentNode.pointers = make([]interface{}, 0)
 		siblingParentNode := makeEmptyInternalNode()
@@ -304,10 +282,7 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		}
 		siblingParentNode.lastOrNextNode = lst
 		siblingParentNode.parent = parentNode.parent
-		fmt.Println("insert_internal_tempNode:", tempKeys)
-		fmt.Println("insert_internal_parentNode:", parentNode.keys)
-		fmt.Println("insert_internal_siblingNode:", siblingParentNode.keys)
-		childKeyTwo := siblingParentNode.keys[0]
+		childKeyTwo := tempKeys[b.internalMaxSize/2+1]
 		for _, k := range parentNode.pointers {
 			if k == newNode {
 				newNode.parent = parentNode
