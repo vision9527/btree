@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func makeTestLeafNode(keys []string, values []string) *Node {
@@ -37,6 +38,7 @@ func GenTestKeyAndValue(repeatNum int) []string {
 }
 
 func ShuffleTestkv(kv []string) {
+	rand.Seed(time.Now().Unix())
 	for len(kv) > 0 {
 		size := len(kv)
 		r := rand.Intn(size)
@@ -296,7 +298,7 @@ func TestInsertCaseShuffleTestkv(t *testing.T) {
 	tree, _ := StartNewTree(4, 4)
 	testkv := GenTestKeyAndValue(1)
 	ShuffleTestkv(testkv)
-	t.Log(testkv)
+	t.Log("TestInsertCaseShuffleTestkv_testkv:", testkv)
 	for i := 0; i < len(testkv); i++ {
 		tree.Insert(testkv[i], testkv[i])
 	}
