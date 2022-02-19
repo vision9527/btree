@@ -305,7 +305,6 @@ func TestInsertCaseTwo(t *testing.T) {
 
 // 小fanout，乱序插入
 func TestInsertCaseShuffleTestkv(t *testing.T) {
-	t.Skip()
 	tree, _ := StartNewTree(4, 4)
 	testkv := GenTestKeyAndValue(1)
 	ShuffleTestkv(testkv)
@@ -332,13 +331,13 @@ func TestInsertCaseShuffleTestkv(t *testing.T) {
 
 func TestInsertCaseShuffleTestkv2(t *testing.T) {
 	tree, _ := StartNewTree(4, 4)
-	testkv := []string{"w", "i", "l", "u", "y", "k", "h", "t", "c", "q",
-		"p", "v", "j", "r", "b", "g", "o", "e", "a", "f", "s", "n", "d", "z", "m", "x"}
+	testkv := GenTestKeyAndValue(5)
+	ShuffleTestkv(testkv)
 	fmt.Println(testkv)
 	for i := 0; i < len(testkv); i++ {
-		fmt.Printf("insert: %s ...\n", testkv[i])
+		// fmt.Printf("insert: %s ...\n", testkv[i])
 		tree.Insert(testkv[i], testkv[i])
-		tree.Print()
+		// tree.Print()
 	}
 
 	for i := 0; i < len(testkv); i++ {

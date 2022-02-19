@@ -175,7 +175,6 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 		tempNode.pointers = append(tempNode.pointers, leafNode.pointers...)
 		b.insertIntoLeaf(tempNode, targetKey, record)
 		siblingNode.lastOrNextNode = leafNode.lastOrNextNode
-
 		leafNode.lastOrNextNode = siblingNode
 		leafNode.keys = make([]Key, 0)
 		leafNode.pointers = make([]interface{}, 0)
@@ -183,6 +182,7 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:b.leafMaxSize/2+1]...)
 		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.leafMaxSize/2+1:]...)
 		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2+1:]...)
+
 		childKey := siblingNode.keys[0]
 		b.insertIntoParent(leafNode, siblingNode, childKey)
 	}
@@ -272,7 +272,6 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 	}
 	parentNode := oldNode.parent
 	if len(parentNode.keys) < b.internalMaxSize {
-		// fmt.Println("split len(parentNode.keys):", len(parentNode.keys), b.internalMaxSize)
 		// insert (childKey, newNode) to parentNode after oldNode
 		parentNode.insertNextAfterPrev(childKey, oldNode, newNode)
 		newNode.parent = parentNode
@@ -310,6 +309,11 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 			if k == oldNode {
 				oldNode.parent = parentNode
 			}
+			p, ok := k.(*Node)
+			if !ok {
+				panic("should be *node")
+			}
+			p.parent = parentNode
 		}
 		if parentNode.lastOrNextNode == newNode {
 			newNode.parent = parentNode
@@ -325,6 +329,11 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 			if k == oldNode {
 				oldNode.parent = siblingParentNode
 			}
+			p, ok := k.(*Node)
+			if !ok {
+				panic("should be *node")
+			}
+			p.parent = siblingParentNode
 		}
 		if siblingParentNode.lastOrNextNode == newNode {
 			newNode.parent = siblingParentNode
@@ -332,7 +341,6 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		if siblingParentNode.lastOrNextNode == oldNode {
 			oldNode.parent = siblingParentNode
 		}
-
 		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
 	}
 
