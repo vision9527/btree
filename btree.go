@@ -77,6 +77,9 @@ func (b *BPlusTree) Insert(key, value string) {
 func (b *BPlusTree) Remove(key string) {}
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
+	if targetKey == "g" {
+		fmt.Println("findleaf g:", leafNode)
+	}
 	return leafNode.findRecord(Key(targetKey))
 }
 func (b *BPlusTree) FindRange(start, end string) []string {
@@ -93,6 +96,11 @@ func (b *BPlusTree) Print() {
 		str := ""
 		for i := 0; i < size; i++ {
 			nodeI := queue[i]
+			if nodeI == nil {
+				str = strings.Trim(str, " &&")
+				str = str + " --- "
+				continue
+			}
 			node, ok := nodeI.(*Node)
 			if !ok {
 				panic("should node")
@@ -104,6 +112,7 @@ func (b *BPlusTree) Print() {
 					str = str + "," + fmt.Sprintf("%v", node.keys)
 				}
 			} else {
+				str = str + "("
 				for j := 0; j < len(node.keys); j++ {
 					key := node.keys[j]
 					record := node.pointers[j]
@@ -115,14 +124,16 @@ func (b *BPlusTree) Print() {
 						}
 					}
 				}
-				str = str + " && "
+				str = str + ") && "
 			}
 			if len(node.pointers) != 0 && !node.isLeaf {
 				queue = append(queue, node.pointers...)
 				queue = append(queue, node.lastOrNextNode)
+				queue = append(queue, nil)
 			}
 		}
-		str = strings.Trim(str, " && ")
+		str = strings.Trim(str, " &&")
+		str = strings.Trim(str, "---")
 		fmt.Printf("level %d: %s\n", level, str)
 		level++
 		if len(queue) > size {
@@ -169,13 +180,18 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 		leafNode.lastOrNextNode = siblingNode
 		leafNode.keys = make([]Key, 0)
 		leafNode.pointers = make([]interface{}, 0)
-		leafNode.keys = append(leafNode.keys, tempNode.keys[0:b.leafMaxSize/2]...)
-		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:b.leafMaxSize/2]...)
+		leafNode.keys = append(leafNode.keys, tempNode.keys[0:b.leafMaxSize/2+1]...)
+		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:b.leafMaxSize/2+1]...)
 
-		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.leafMaxSize/2:]...)
-		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2:]...)
+		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.leafMaxSize/2+1:]...)
+		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2+1:]...)
+		// fmt.Println("leafNode.keys:", leafNode.keys, siblingNode.keys)
 		// siblingNode.parent = leafNode.parent
 		childKey := siblingNode.keys[0]
+		fmt.Println("tempNode:", tempNode.keys)
+		fmt.Println("leafNode:", leafNode.keys)
+		fmt.Println("siblingNode:", siblingNode.keys)
+		fmt.Printf("leafNode.parent:%v %v childKey:%s\n", leafNode.parent, leafNode.keys, childKey)
 		b.insertIntoParent(leafNode, siblingNode, childKey)
 	}
 }
@@ -248,32 +264,71 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 	}
 	parentNode := oldNode.parent
 	if len(parentNode.keys) < b.internalMaxSize {
-		fmt.Println("split len(parentNode.keys):", len(parentNode.keys), b.internalMaxSize)
+		// fmt.Println("split len(parentNode.keys):", len(parentNode.keys), b.internalMaxSize)
 		// insert (childKey, newNode) to parentNode after oldNode
 		parentNode.insertNextAfterPrev(childKey, oldNode, newNode)
+		newNode.parent = parentNode
 		return
 	} else {
 		// split
 		fmt.Println("split")
 		tempNode := parentNode.copy()
 		tempNode.insertNextAfterPrev(childKey, oldNode, newNode)
+		tempKeys := tempNode.keys
+		tempPointers := tempNode.pointers
+		tempPointers = append(tempPointers, tempNode.lastOrNextNode)
+		fmt.Println("tempKeys:", tempKeys)
+		fmt.Printf("tempPointers:%v \n", tempPointers)
+		// print---
+		for _, i := range tempPointers {
+			if a, ok := i.(*Node); ok {
+				fmt.Println("aaa:", a.keys)
+			}
+		}
+		// print---
 		parentNode.keys = make([]Key, 0)
 		parentNode.pointers = make([]interface{}, 0)
-		parentNodeLastOrNextNodePointer := parentNode.lastOrNextNode
-		siblingNode := makeEmptyInternalNode()
-		parentNode.keys = append(parentNode.keys, tempNode.keys[0:b.internalMaxSize/2]...)
-		parentNode.pointers = append(parentNode.pointers, tempNode.pointers[0:b.internalMaxSize/2]...)
-		lst, ok := tempNode.pointers[b.internalMaxSize/2].(*Node)
+		siblingParentNode := makeEmptyInternalNode()
+		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2+1]...)
+		parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2+1]...)
+		lst, ok := tempPointers[b.internalMaxSize/2+1].(*Node)
 		if !ok {
 			panic("should be *Node")
 		}
 		parentNode.lastOrNextNode = lst
-		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.internalMaxSize/2+1:]...)
-		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.internalMaxSize/2:]...)
-		siblingNode.lastOrNextNode = parentNodeLastOrNextNodePointer
-		siblingNode.parent = parentNode.parent
-		childKeyTwo := tempNode.keys[b.internalMaxSize/2+1]
-		b.insertIntoParent(parentNode, siblingNode, childKeyTwo)
+		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[b.internalMaxSize/2+2:]...)
+		siblingParentNode.pointers = append(siblingParentNode.pointers, tempPointers[b.internalMaxSize/2+2:b.internalMaxSize+1]...)
+		lst, ok = tempPointers[b.internalMaxSize+1].(*Node)
+		if !ok {
+			panic("should be *Node")
+		}
+		siblingParentNode.lastOrNextNode = lst
+		siblingParentNode.parent = parentNode.parent
+		fmt.Println("insert_internal_tempNode:", tempKeys)
+		fmt.Println("insert_internal_parentNode:", parentNode.keys)
+		fmt.Println("insert_internal_siblingNode:", siblingParentNode.keys)
+		childKeyTwo := siblingParentNode.keys[0]
+		for _, k := range parentNode.pointers {
+			if k == newNode {
+				newNode.parent = parentNode
+				break
+			}
+		}
+		if parentNode.lastOrNextNode == newNode {
+			newNode.parent = parentNode
+		}
+
+		for _, k := range siblingParentNode.pointers {
+			if k == newNode {
+				newNode.parent = siblingParentNode
+				break
+			}
+		}
+		if siblingParentNode.lastOrNextNode == newNode {
+			newNode.parent = siblingParentNode
+		}
+
+		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
 	}
 
 }
@@ -326,6 +381,7 @@ func (n *Node) insertNextAfterPrev(childKey Key, prev, next *Node) {
 	}
 
 	if number == -1 {
+		// prev 在lastOrNextNode
 		n.keys = append(n.keys, childKey)
 		n.pointers = append(n.pointers, prev)
 		n.lastOrNextNode = next

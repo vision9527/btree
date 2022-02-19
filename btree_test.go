@@ -185,42 +185,64 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	tree := StartNewTree(4, 4)
-	tree.Insert("k1", "v1")
-	tree.Insert("k2", "v2")
-	tree.Insert("k3", "v3")
+	tree := StartNewTree(3, 3)
+	tree.Insert("a", "a")
+	tree.Insert("b", "b")
+	tree.Insert("c", "c")
 	fmt.Println("---------44444")
-	tree.Insert("k4", "v4")
+	tree.Insert("d", "d")
 	tree.Print()
 	fmt.Println("---------55555")
-	tree.Insert("k5", "v5")
+	tree.Insert("e", "e")
 	tree.Print()
 	fmt.Println("---------66666")
-	tree.Insert("k6", "v6")
+	tree.Insert("f", "f")
 	tree.Print()
 	fmt.Println("---------77777")
-	tree.Insert("k7", "v7")
+	tree.Insert("g", "g")
 	tree.Print()
 	fmt.Println("---------88888")
-	tree.Insert("k8", "v8")
+	tree.Insert("h", "h")
 	tree.Print()
 	fmt.Println("---------99999")
-	tree.Insert("k9", "v9")
+	tree.Insert("i", "i")
 	tree.Print()
-	// tree.Insert("key10", "value10")
-	// tree.Insert("key11", "value11")
-	// tree.Insert("key12", "value12")
-	// tree.Insert("key13", "value13")
-	// tree.Insert("key14", "value14")
-	v, _ := tree.Find("k1")
-	if v != "v1" {
-		t.Fatalf("value should be v1, but value:%s", v)
+	fmt.Println("---------10101010")
+	tree.Insert("j", "j")
+	tree.Print()
+	fmt.Println("---------11111111")
+	tree.Insert("k", "k")
+	tree.Print()
+	fmt.Println("---------12121212")
+	tree.Insert("l", "l")
+	tree.Print()
+	fmt.Println("---------13131313")
+	tree.Insert("m", "m")
+	tree.Print()
+	fmt.Println("---------14141414")
+	tree.Insert("n", "n")
+	tree.Print()
+	v, _ := tree.Find("a")
+	if v != "a" {
+		t.Fatalf("value should be a, but value:%s", v)
 	}
-	v, _ = tree.Find("k9")
-	if v != "v9" {
-		t.Fatalf("value should be v9, , but value:%s", v)
+	v, _ = tree.Find("g")
+	if v != "g" {
+		t.Fatalf("value should be g, but value:%s", v)
 	}
-	v, ok := tree.Find("k0")
+	v, _ = tree.Find("i")
+	if v != "i" {
+		t.Fatalf("value should be i, but value:%s", v)
+	}
+	v, _ = tree.Find("m")
+	if v != "m" {
+		t.Fatalf("value should be m, but value:%s", v)
+	}
+	v, _ = tree.Find("n")
+	if v != "n" {
+		t.Fatalf("value should be n, but value:%s", v)
+	}
+	v, ok := tree.Find("xxxxxx")
 	if ok {
 		t.Fatalf("value should not exsit")
 	}
