@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -44,11 +45,14 @@ func (r *Record) ToValue() string {
 	return string(r.value)
 }
 
-func StartNewTree(leafMaxSize, internalMaxSize int) *BPlusTree {
+func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
+	if leafMaxSize < 3 || internalMaxSize < 3 {
+		return nil, errors.New("need more than 3")
+	}
 	return &BPlusTree{
 		leafMaxSize:     leafMaxSize,
 		internalMaxSize: internalMaxSize,
-	}
+	}, nil
 }
 
 func makeEmptyLeafNode() *Node {
@@ -169,9 +173,9 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 		tempNode := makeEmptyLeafNode()
 		tempNode.keys = append(tempNode.keys, leafNode.keys...)
 		tempNode.pointers = append(tempNode.pointers, leafNode.pointers...)
-
 		b.insertIntoLeaf(tempNode, targetKey, record)
 		siblingNode.lastOrNextNode = leafNode.lastOrNextNode
+
 		leafNode.lastOrNextNode = siblingNode
 		leafNode.keys = make([]Key, 0)
 		leafNode.pointers = make([]interface{}, 0)
@@ -181,6 +185,20 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2+1:]...)
 		childKey := siblingNode.keys[0]
 		b.insertIntoParent(leafNode, siblingNode, childKey)
+	}
+}
+
+func (b *BPlusTree) printLeafNode(node *Node) {
+	for node != nil && len(node.pointers) != 0 {
+		if len(node.pointers) != 0 {
+			for _, r := range node.pointers {
+				value, _ := r.(*Record)
+				fmt.Print(string(value.value))
+
+			}
+			fmt.Println()
+		}
+		node = node.lastOrNextNode
 	}
 }
 
@@ -226,16 +244,18 @@ func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Record)
 		leafNode.pointers = append(leafNode.pointers, value)
 		return
 	}
-	tempKeys := make([]Key, 0)
-	tempPointers := make([]interface{}, 0)
-	tempKeys = append(tempKeys, leafNode.keys[0:number]...)
-	tempKeys = append(tempKeys, targetKey)
-	tempKeys = append(tempKeys, leafNode.keys[number:]...)
-	tempPointers = append(tempPointers, leafNode.pointers[0:number]...)
-	tempPointers = append(tempPointers, value)
-	tempPointers = append(tempPointers, leafNode.pointers[number:]...)
-	leafNode.keys = tempKeys
-	leafNode.pointers = tempPointers
+	// tempKeys := make([]Key, 0)
+	// tempPointers := make([]interface{}, 0)
+	// tempKeys = append(tempKeys, leafNode.keys[0:number]...)
+	// tempKeys = append(tempKeys, targetKey)
+	// tempKeys = append(tempKeys, leafNode.keys[number:]...)
+	// tempPointers = append(tempPointers, leafNode.pointers[0:number]...)
+	// tempPointers = append(tempPointers, value)
+	// tempPointers = append(tempPointers, leafNode.pointers[number:]...)
+	leafNode.keys = append(leafNode.keys[:number], append([]Key{targetKey}, leafNode.keys[number:]...)...)
+	leafNode.pointers = append(leafNode.pointers[:number], append([]interface{}{value}, leafNode.pointers[number:]...)...)
+	// leafNode.keys = tempKeys
+	// leafNode.pointers = tempPointers
 }
 func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 	// fmt.Println("insertIntoParent oldnode: ", childKey, oldNode)
@@ -267,40 +287,50 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		parentNode.keys = make([]Key, 0)
 		parentNode.pointers = make([]interface{}, 0)
 		siblingParentNode := makeEmptyInternalNode()
-		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2+1]...)
-		parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2+1]...)
-		lst, ok := tempPointers[b.internalMaxSize/2+1].(*Node)
+		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2]...)
+		parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2]...)
+		lst, ok := tempPointers[b.internalMaxSize/2].(*Node)
 		if !ok {
 			panic("should be *Node")
 		}
 		parentNode.lastOrNextNode = lst
-		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[b.internalMaxSize/2+2:]...)
-		siblingParentNode.pointers = append(siblingParentNode.pointers, tempPointers[b.internalMaxSize/2+2:b.internalMaxSize+1]...)
+		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[b.internalMaxSize/2+1:]...)
+		siblingParentNode.pointers = append(siblingParentNode.pointers, tempPointers[b.internalMaxSize/2+1:b.internalMaxSize+1]...)
 		lst, ok = tempPointers[b.internalMaxSize+1].(*Node)
 		if !ok {
 			panic("should be *Node")
 		}
 		siblingParentNode.lastOrNextNode = lst
 		siblingParentNode.parent = parentNode.parent
-		childKeyTwo := tempKeys[b.internalMaxSize/2+1]
+		childKeyTwo := tempKeys[b.internalMaxSize/2]
 		for _, k := range parentNode.pointers {
 			if k == newNode {
 				newNode.parent = parentNode
-				break
+			}
+			if k == oldNode {
+				oldNode.parent = parentNode
 			}
 		}
 		if parentNode.lastOrNextNode == newNode {
 			newNode.parent = parentNode
 		}
+		if parentNode.lastOrNextNode == oldNode {
+			oldNode.parent = parentNode
+		}
 
 		for _, k := range siblingParentNode.pointers {
 			if k == newNode {
 				newNode.parent = siblingParentNode
-				break
+			}
+			if k == oldNode {
+				oldNode.parent = siblingParentNode
 			}
 		}
 		if siblingParentNode.lastOrNextNode == newNode {
 			newNode.parent = siblingParentNode
+		}
+		if siblingParentNode.lastOrNextNode == oldNode {
+			oldNode.parent = siblingParentNode
 		}
 
 		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
@@ -354,27 +384,28 @@ func (n *Node) insertNextAfterPrev(childKey Key, prev, next *Node) {
 			break
 		}
 	}
-
 	if number == -1 {
 		// prev 在lastOrNextNode
 		n.keys = append(n.keys, childKey)
 		n.pointers = append(n.pointers, prev)
 		n.lastOrNextNode = next
 	} else {
-		tempKeys := make([]Key, 0)
-		tempKeys = append(tempKeys, n.keys...)
-		tempPointers := make([]interface{}, 0)
-		tempPointers = append(tempPointers, n.pointers...)
-		if len(n.keys) < number+2 {
-			n.keys = append(n.keys, Key(""))
-		}
-		n.keys[number+1] = childKey
-		copy(n.keys[number+2:], tempKeys[number+1:])
-		if len(n.pointers) < number+2 {
-			n.pointers = append(n.pointers, nil)
-		}
-		n.pointers[number+1] = next
-		copy(n.pointers[number+2:], tempPointers[number+1:])
+		// tempKeys := make([]Key, 0)
+		// tempKeys = append(tempKeys, n.keys...)
+		// tempPointers := make([]interface{}, 0)
+		// tempPointers = append(tempPointers, n.pointers...)
+		// if len(n.keys) < number+2 {
+		// 	n.keys = append(n.keys, Key(""))
+		// }
+		// n.keys[number+1] = childKey
+		// copy(n.keys[number+2:], tempKeys[number+1:])
+		// if len(n.pointers) < number+2 {
+		// 	n.pointers = append(n.pointers, nil)
+		// }
+		// n.pointers[number+1] = next
+		// copy(n.pointers[number+2:], tempPointers[number+1:])
+		n.keys = append(n.keys[:number], append([]Key{childKey}, n.keys[number:]...)...)
+		n.pointers = append(n.pointers[:number+1], append([]interface{}{next}, n.pointers[number+1:]...)...)
 	}
 
 }

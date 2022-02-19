@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 )
 
@@ -22,30 +23,36 @@ func makeTestLeafNode(keys []string, values []string) *Node {
 	return n
 }
 
-func GenTestKeyAndValue(repeatNum int) ([]string, []string) {
+func GenTestKeyAndValue(repeatNum int) []string {
 	str := "abcdefghijklmnopqrstuvwxyz"
-	keys := make([]string, 0)
-	values := make([]string, 0)
+	result := make([]string, 0)
 	for _, i := range str {
 		s := ""
 		for j := 0; j < repeatNum; j++ {
 			s = s + string(i)
-			keys = append(keys, s)
-			values = append(values, s)
+			result = append(result, s)
 		}
 
 	}
-	return keys, values
+	return result
+}
+
+func ShuffleTestkv(kv []string) {
+	for len(kv) > 0 {
+		size := len(kv)
+		r := rand.Intn(size)
+		kv[r], kv[size-1] = kv[size-1], kv[r]
+		kv = kv[0 : size-1]
+	}
 }
 
 func TestGenTestKeyAndValue_Print(t *testing.T) {
-	keys, values := GenTestKeyAndValue(3)
-	fmt.Println("test_keys:", keys)
-	fmt.Println("test_values:", values)
+	testkv := GenTestKeyAndValue(3)
+	fmt.Println("test_keys:", testkv)
 }
 
 func TestBPlusTreeFind_rootDontHaveChild(t *testing.T) {
-	tree := StartNewTree(4, 4)
+	tree, _ := StartNewTree(4, 4)
 	root := &Node{
 		isLeaf:   true,
 		keys:     []Key{Key("test_key1"), Key("test_key2"), Key("test_key3")},
@@ -81,7 +88,7 @@ func TestBPlusTreeFind_rootDontHaveChild(t *testing.T) {
 }
 
 func TestBPlusTreeFind_rootHaveChild(t *testing.T) {
-	tree := StartNewTree(6, 6)
+	tree, _ := StartNewTree(6, 6)
 	root := &Node{
 		isLeaf:   false,
 		keys:     []Key{Key("El Said"), Key("Mozart")},
@@ -136,7 +143,7 @@ func TestBPlusTreeFind_findRecord(t *testing.T) {
 }
 
 func TestBPlusTree_insertIntoLeaf(t *testing.T) {
-	tree := StartNewTree(6, 6)
+	tree, _ := StartNewTree(6, 6)
 	leafNode := makeTestLeafNode([]string{"key1", "key2", "key4", "key5"},
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
 	targetKey := Key("key3")
@@ -207,7 +214,7 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 }
 
 func TestInsertCaseOne(t *testing.T) {
-	tree := StartNewTree(3, 3)
+	tree, _ := StartNewTree(3, 3)
 	tree.Insert("a", "a")
 	tree.Insert("b", "b")
 	tree.Insert("c", "c")
@@ -276,46 +283,89 @@ func TestInsertCaseOne(t *testing.T) {
 
 // 小fanout， 多key，value
 func TestInsertCaseTwo(t *testing.T) {
-	tree := StartNewTree(2, 2)
-	keys, values := GenTestKeyAndValue(1)
-	for i := 0; i < len(keys); i++ {
-		tree.Insert(keys[i], values[i])
+	tree, _ := StartNewTree(3, 3)
+	testkv := GenTestKeyAndValue(3)
+	for i := 0; i < len(testkv); i++ {
+		tree.Insert(testkv[i], testkv[i])
 	}
 	tree.Print()
-	firstNode := tree.findLeafNode("a")
-	currentNode := firstNode
-	for currentNode != nil {
-		for _, recordI := range currentNode.pointers {
-			record, _ := recordI.(*Record)
-			fmt.Println("value:", string(record.value))
+	for i := 0; i < len(testkv); i++ {
+		key := testkv[i]
+		value := testkv[i]
+		v, ok := tree.Find(key)
+		if !ok {
+			t.Fatalf("value should exsit")
 		}
-		currentNode = currentNode.lastOrNextNode
+		if v != value {
+			t.Fatalf("value should be %s, but value:%s", key, v)
+		}
 	}
-	// for i := 0; i < len(keys); i++ {
-	// 	key := keys[i]
-	// 	value := values[i]
-	// 	v, ok := tree.Find(key)
-	// 	if !ok {
-	// 		t.Fatalf("value should exsit")
-	// 	}
-	// 	if v != value {
-	// 		t.Fatalf("value should be %s, but value:%s", key, v)
-	// 	}
-	// }
 
 }
 
 // 小fanout，乱序插入
-// func TestInsertCaseThree(t *testing.T) {
-// 	tree := StartNewTree(2, 2)
-// 	keys, values := GenTestKeyAndValue(4)
-// 	for i := 0; i < len(keys); i++ {
-// 		tree.Insert(keys[i], values[i])
+func TestInsertCaseShuffleTestkv(t *testing.T) {
+	t.Skip()
+	tree, _ := StartNewTree(4, 4)
+	testkv := GenTestKeyAndValue(1)
+	ShuffleTestkv(testkv)
+	fmt.Println(testkv)
+	for i := 0; i < len(testkv); i++ {
+		fmt.Printf("insert: %s ...\n", testkv[i])
+		tree.Insert(testkv[i], testkv[i])
+		tree.Print()
+	}
+	tree.Print()
+
+	for i := 0; i < len(testkv); i++ {
+		key := testkv[i]
+		value := testkv[i]
+		v, ok := tree.Find(key)
+		if !ok {
+			t.Fatalf("value:%s, should exsit", key)
+		}
+		if v != value {
+			t.Fatalf("value should be %s, but value:%s", key, v)
+		}
+	}
+}
+
+func TestInsertCaseShuffleTestkv2(t *testing.T) {
+	tree, _ := StartNewTree(4, 4)
+	testkv := []string{"w", "i", "l", "u", "y", "k", "h", "t", "c", "q",
+		"p", "v", "j", "r", "b", "g", "o", "e", "a", "f", "s", "n", "d", "z", "m", "x"}
+	fmt.Println(testkv)
+	for i := 0; i < len(testkv); i++ {
+		fmt.Printf("insert: %s ...\n", testkv[i])
+		tree.Insert(testkv[i], testkv[i])
+		tree.Print()
+	}
+
+	for i := 0; i < len(testkv); i++ {
+		key := testkv[i]
+		value := testkv[i]
+		v, ok := tree.Find(key)
+		if !ok {
+			t.Fatalf("value:%s, should exsit", key)
+		}
+		if v != value {
+			t.Fatalf("value should be %s, but value:%s", key, v)
+		}
+	}
+}
+
+// 重复插入
+// func TestInsertCaseFour(t *testing.T) {
+// 	tree, _ := StartNewTree(3, 3)
+// 	testkv := GenTestKeyAndValue(3)
+// 	for i := 0; i < len(testkv); i++ {
+// 		tree.Insert(testkv[i], testkv[i])
 // 	}
 // 	tree.Print()
-// 	for i := 0; i < len(keys); i++ {
-// 		key := keys[i]
-// 		value := values[i]
+// 	ShuffleTestkv(testkv)
+// 	for i := 0; i < len(testkv); i++ {
+// 		key := testkv[i]
+// 		value := testkv[i]
 // 		v, ok := tree.Find(key)
 // 		if !ok {
 // 			t.Fatalf("value should exsit")
