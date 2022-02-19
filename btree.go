@@ -84,24 +84,55 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 }
 
 func (b *BPlusTree) Print() {
-	b.print(b.root)
-}
-
-func (b *BPlusTree) print(node *Node) {
-	fmt.Println("node keys:", node.keys)
-	if len(node.pointers) != 0 {
-		for _, n := range node.pointers {
-			if p, ok := n.(*Node); ok {
-				b.print(p)
+	fmt.Println("--------------------------------------------------start print tree")
+	queue := make([]interface{}, 0)
+	queue = append(queue, b.root)
+	level := 1
+	for len(queue) != 0 {
+		size := len(queue)
+		str := ""
+		for i := 0; i < size; i++ {
+			nodeI := queue[i]
+			node, ok := nodeI.(*Node)
+			if !ok {
+				panic("should node")
 			}
-			if p, ok := n.(*Record); ok {
-				fmt.Println("record: ", string(p.value))
+			if !node.isLeaf {
+				if str == "" {
+					str = fmt.Sprintf("%v", node.keys)
+				} else {
+					str = str + "," + fmt.Sprintf("%v", node.keys)
+				}
+			} else {
+				for j := 0; j < len(node.keys); j++ {
+					key := node.keys[j]
+					record := node.pointers[j]
+					if p, ok := record.(*Record); ok {
+						if j == 0 {
+							str = str + fmt.Sprintf("%s|%s", key, string(p.value))
+						} else {
+							str = str + "," + fmt.Sprintf("%s|%s", key, string(p.value))
+						}
+					}
+				}
+				str = str + " && "
+			}
+			if len(node.pointers) != 0 && !node.isLeaf {
+				queue = append(queue, node.pointers...)
+				queue = append(queue, node.lastOrNextNode)
 			}
 		}
+		str = strings.Trim(str, " && ")
+		fmt.Printf("level %d: %s\n", level, str)
+		level++
+		if len(queue) > size {
+			queue = queue[size:]
+		} else {
+			break
+		}
 	}
-	if node.lastOrNextNode != nil && !node.isLeaf {
-		b.print(node.lastOrNextNode)
-	}
+	fmt.Println("--------------------------------------------------end print tree")
+
 }
 
 // 内部方法
@@ -110,6 +141,9 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 	if b.root == nil {
 		leafNode = makeEmptyLeafNode()
 		b.root = leafNode
+		leafNode.keys = append(leafNode.keys, targetKey)
+		leafNode.pointers = append(leafNode.pointers, record)
+		return
 	} else {
 		leafNode = b.findLeafNode(targetKey)
 	}
@@ -119,7 +153,8 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 	if leafNode.updateRecord(targetKey, record) {
 		return
 	}
-
+	// fmt.Println("leafNode:", leafNode)
+	// fmt.Printf("leafNode: %v, parent:%v\n", leafNode, leafNode.parent)
 	if len(leafNode.keys) < b.leafMaxSize {
 		b.insertIntoLeaf(leafNode, targetKey, record)
 	} else {
@@ -139,6 +174,7 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 
 		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.leafMaxSize/2:]...)
 		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2:]...)
+		// siblingNode.parent = leafNode.parent
 		childKey := siblingNode.keys[0]
 		b.insertIntoParent(leafNode, siblingNode, childKey)
 	}
@@ -198,14 +234,15 @@ func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Record)
 	leafNode.pointers = tempPointers
 }
 func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
-	fmt.Println("insertIntoParent", childKey)
+	// fmt.Println("insertIntoParent oldnode: ", childKey, oldNode)
+	// fmt.Println("insertIntoParent newNode: ", childKey, newNode)
 	if oldNode.parent == nil {
 		newRoot := makeEmptyInternalNode()
 		newRoot.keys = append(newRoot.keys, childKey)
 		newRoot.pointers = append(newRoot.pointers, oldNode)
 		newRoot.lastOrNextNode = newNode
 		oldNode.parent = newRoot
-		newRoot.parent = newRoot
+		newNode.parent = newRoot
 		b.root = newRoot
 		return
 	}

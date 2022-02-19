@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func makeLeafNode(keys []string, values []string) *Node {
+func makeTestLeafNode(keys []string, values []string) *Node {
 	n := &Node{
 		isLeaf: true,
 	}
@@ -66,11 +66,11 @@ func TestBPlusTreeFind_rootHaveChild(t *testing.T) {
 		pointers: make([]interface{}, 2),
 	}
 	tree.root = root
-	nodeOne := makeLeafNode([]string{"Brandt", "Califieri", "Crick", "Einstein"},
+	nodeOne := makeTestLeafNode([]string{"Brandt", "Califieri", "Crick", "Einstein"},
 		[]string{"Brandt_value", "Califieri_value", "Crick_value", "Einstein_value"})
-	nodeTwo := makeLeafNode([]string{"El Said", "Gold", "Katz", "Kim"},
+	nodeTwo := makeTestLeafNode([]string{"El Said", "Gold", "Katz", "Kim"},
 		[]string{"El Said_value", "Gold_value", "Katz_value", "Kim_value"})
-	nodeThree := makeLeafNode([]string{"Mozart", "Singh", "Srinivasan", "Wu"},
+	nodeThree := makeTestLeafNode([]string{"Mozart", "Singh", "Srinivasan", "Wu"},
 		[]string{"Mozart_value", "Singh_value", "Srinivasan_value", "Wu_value"})
 	tree.root.pointers[0] = nodeOne
 	tree.root.pointers[1] = nodeTwo
@@ -98,7 +98,7 @@ func TestBPlusTreeFind_rootHaveChild(t *testing.T) {
 }
 
 func TestBPlusTreeFind_findRecord(t *testing.T) {
-	leafNode := makeLeafNode([]string{"Mozart", "Singh", "Srinivasan", "Wu"},
+	leafNode := makeTestLeafNode([]string{"Mozart", "Singh", "Srinivasan", "Wu"},
 		[]string{"Mozart_value", "Singh_value", "Srinivasan_value", "Wu_value"})
 	v, ok := leafNode.findRecord(Key("Singh"))
 	if !ok {
@@ -115,7 +115,7 @@ func TestBPlusTreeFind_findRecord(t *testing.T) {
 
 func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	tree := StartNewTree(6, 6)
-	leafNode := makeLeafNode([]string{"key1", "key2", "key4", "key5"},
+	leafNode := makeTestLeafNode([]string{"key1", "key2", "key4", "key5"},
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
 	targetKey := Key("key3")
 	record := &Record{
@@ -167,7 +167,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 }
 
 func TestBPlusTree_updateRecord(t *testing.T) {
-	leafNode := makeLeafNode([]string{"key1", "key2", "key4", "key5"},
+	leafNode := makeTestLeafNode([]string{"key1", "key2", "key4", "key5"},
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
 	targetKey := Key("key2")
 	record := &Record{
@@ -186,34 +186,41 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 
 func TestInsert(t *testing.T) {
 	tree := StartNewTree(4, 4)
-	tree.Insert("key1", "value1")
-	tree.Insert("key2", "value2")
-	tree.Insert("key3", "value3")
-	tree.Insert("key4", "value4")
+	tree.Insert("k1", "v1")
+	tree.Insert("k2", "v2")
+	tree.Insert("k3", "v3")
 	fmt.Println("---------44444")
+	tree.Insert("k4", "v4")
 	tree.Print()
-	tree.Insert("key5", "value5")
 	fmt.Println("---------55555")
+	tree.Insert("k5", "v5")
 	tree.Print()
-	tree.Insert("key6", "value6")
 	fmt.Println("---------66666")
+	tree.Insert("k6", "v6")
 	tree.Print()
-	// tree.Insert("key8", "value8")
-	// tree.Insert("key9", "value9")
+	fmt.Println("---------77777")
+	tree.Insert("k7", "v7")
+	tree.Print()
+	fmt.Println("---------88888")
+	tree.Insert("k8", "v8")
+	tree.Print()
+	fmt.Println("---------99999")
+	tree.Insert("k9", "v9")
+	tree.Print()
 	// tree.Insert("key10", "value10")
 	// tree.Insert("key11", "value11")
 	// tree.Insert("key12", "value12")
 	// tree.Insert("key13", "value13")
 	// tree.Insert("key14", "value14")
-	v, _ := tree.Find("key1")
-	if v != "value1" {
-		t.Fatalf("value should be value1, but value:%s", v)
+	v, _ := tree.Find("k1")
+	if v != "v1" {
+		t.Fatalf("value should be v1, but value:%s", v)
 	}
-	v, _ = tree.Find("key2")
-	if v != "value2" {
-		t.Fatalf("value should be value2, , but value:%s", v)
+	v, _ = tree.Find("k9")
+	if v != "v9" {
+		t.Fatalf("value should be v9, , but value:%s", v)
 	}
-	v, ok := tree.Find("key0")
+	v, ok := tree.Find("k0")
 	if ok {
 		t.Fatalf("value should not exsit")
 	}
