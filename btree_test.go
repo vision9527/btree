@@ -620,6 +620,10 @@ func TestBPlusTree_FindRangeOrder(t *testing.T) {
 			t.Fatalf("result index:%d should be: %s", i-startIndex, testkv[i])
 		}
 	}
+	result = tree.FindRange(testkv[endIndex], testkv[startIndex])
+	if len(result) != 0 {
+		t.Fatalf("result length should be:0, result:%v", result)
+	}
 }
 
 func TestBPlusTree_FindRangeShuffle(t *testing.T) {

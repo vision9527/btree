@@ -131,11 +131,11 @@ func (b *BPlusTree) InsertByte(key string, value []byte) {
 }
 
 func (b *BPlusTree) Delete(key string) (value string, err error) {
-	panic("need implement")
+	panic("wait for implement")
 }
 
 func (b *BPlusTree) DeleteByte(key string) (value []byte, err error) {
-	panic("need implement")
+	panic("wait for implement")
 }
 
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
@@ -155,12 +155,27 @@ func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
 }
 
 func (b *BPlusTree) FindRange(start, end string) []string {
+	result := make([]string, 0)
+	byteResult := b.FindRangeByte(start, end)
+	if len(byteResult) == 0 {
+		return result
+	}
+	for _, i := range byteResult {
+		result = append(result, string(i))
+	}
+	return result
+}
+
+func (b *BPlusTree) FindRangeByte(start, end string) [][]byte {
+	b.resetCount()
+	result := make([][]byte, 0)
 	startKey := Key(start)
 	endKey := Key(end)
+	if startKey.compare(endKey) == 1 {
+		return result
+	}
 	leafNode := b.findLeafNode(Key(start))
 	currentNode := leafNode
-	result := make([]string, 0)
-	b.resetCount()
 	for currentNode != nil {
 		b.incrCount()
 		for i, key := range currentNode.keys {
@@ -169,7 +184,7 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 				if !ok {
 					panic("should be *Entry")
 				}
-				result = append(result, entry.toValue())
+				result = append(result, entry.value)
 			}
 			if key.compare(endKey) == 1 {
 				return result
