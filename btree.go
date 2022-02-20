@@ -10,9 +10,9 @@ const defaultLeafMaxSize = 200
 const defaultInternalMaxSize = 100
 
 type BPlusTree struct {
-	// 叶子结点key最多数量, key半满条件: leafMaxSize/2，指针的数量: leafMaxSize+1, 最后一个指针在node的lastOrNextNode
+	// 叶子节点key最多数量, key半满条件: leafMaxSize/2，指针的数量: leafMaxSize+1, 最后一个指针在node的lastOrNextNode
 	leafMaxSize int
-	// 非叶子结点key最多数量, key半满条件: internalMaxSize/2，指针的数量: internalMaxSize+1, 最后一个指针在node的lastOrNextNode
+	// 非叶子节点key最多数量, key半满条件: internalMaxSize/2，指针的数量: internalMaxSize+1, 最后一个指针在node的lastOrNextNode
 	internalMaxSize int
 	// 0个或者2-n个子节点
 	root *Node
@@ -21,10 +21,10 @@ type BPlusTree struct {
 }
 
 type Node struct {
-	// 是否是叶子结点
+	// 是否是叶子节点
 	isLeaf bool
 	keys   []Key
-	// 非叶子结点是*Node，叶子结点是*Record, 最后一个指针挪到了lastOrNextNode
+	// 非叶子节点是*Node，叶子节点是*Entry, 最后一个指针挪到了lastOrNextNode
 	// 所以len(keys)=len(pointers)
 	pointers []interface{}
 	parent   *Node
@@ -52,11 +52,11 @@ func (k Key) toString() string {
 	return string(k)
 }
 
-type Record struct {
+type Entry struct {
 	value []byte
 }
 
-func (r *Record) toValue() string {
+func (r *Entry) toValue() string {
 	return string(r.value)
 }
 
@@ -99,14 +99,14 @@ func (b *BPlusTree) SetStat(stat *Stat) {
 
 // 功能接口
 func (b *BPlusTree) Insert(key, value string) {
-	pointer := &Record{
+	pointer := &Entry{
 		value: []byte(value),
 	}
 	b.insert(Key(key), pointer)
 }
 
 func (b *BPlusTree) InsertByte(key string, value []byte) {
-	pointer := &Record{
+	pointer := &Entry{
 		value: value,
 	}
 	b.insert(Key(key), pointer)
@@ -121,6 +121,7 @@ func (b *BPlusTree) DeleteByte(key string) (value []byte, err error) {
 }
 
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
+	b.resetCount()
 	leafNode := b.findLeafNode(Key(targetKey))
 	value, ok := leafNode.findRecord(Key(targetKey))
 	b.incrCount()
@@ -128,8 +129,8 @@ func (b *BPlusTree) Find(targetKey string) (string, bool) {
 }
 
 func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
-	leafNode := b.findLeafNode(Key(targetKey))
 	b.resetCount()
+	leafNode := b.findLeafNode(Key(targetKey))
 	value, ok := leafNode.findRecord(Key(targetKey))
 	b.incrCount()
 	return value, ok
@@ -141,15 +142,16 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 	leafNode := b.findLeafNode(Key(start))
 	currentNode := leafNode
 	result := make([]string, 0)
+	b.resetCount()
 	for currentNode != nil {
 		b.incrCount()
 		for i, key := range currentNode.keys {
 			if key.compare(startKey) >= 0 && key.compare(endKey) <= 0 {
-				record, ok := currentNode.pointers[i].(*Record)
+				entry, ok := currentNode.pointers[i].(*Entry)
 				if !ok {
-					panic("should be *Record")
+					panic("should be *Entry")
 				}
-				result = append(result, record.toValue())
+				result = append(result, entry.toValue())
 			}
 			if key.compare(endKey) == 1 {
 				return result
@@ -160,7 +162,7 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 	return result
 }
 
-// 统计结点数量
+// 统计节点数量
 func (b *BPlusTree) CountNode() {
 	queue := make([]interface{}, 0)
 	queue = append(queue, b.root)
@@ -227,8 +229,8 @@ func (b *BPlusTree) Print() {
 				str = str + "("
 				for j := 0; j < len(node.keys); j++ {
 					key := node.keys[j]
-					record := node.pointers[j]
-					if p, ok := record.(*Record); ok {
+					entry := node.pointers[j]
+					if p, ok := entry.(*Entry); ok {
 						if j == 0 {
 							str = str + fmt.Sprintf("%s|%s", key, string(p.value))
 						} else {
@@ -257,13 +259,13 @@ func (b *BPlusTree) Print() {
 }
 
 // 内部方法
-func (b *BPlusTree) insert(targetKey Key, record *Record) {
+func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
 	var leafNode *Node
 	if b.root == nil {
 		leafNode = makeEmptyLeafNode()
 		b.root = leafNode
 		leafNode.keys = append(leafNode.keys, targetKey)
-		leafNode.pointers = append(leafNode.pointers, record)
+		leafNode.pointers = append(leafNode.pointers, entry)
 		return
 	} else {
 		leafNode = b.findLeafNode(targetKey)
@@ -271,18 +273,18 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 	if leafNode == nil {
 		panic("should find leaf node")
 	}
-	if leafNode.updateRecord(targetKey, record) {
+	if leafNode.updateRecord(targetKey, entry) {
 		return
 	}
 	if len(leafNode.keys) < b.leafMaxSize {
-		b.insertIntoLeaf(leafNode, targetKey, record)
+		b.insertIntoLeaf(leafNode, targetKey, entry)
 	} else {
 		// split
 		siblingNode := makeEmptyLeafNode()
 		tempNode := makeEmptyLeafNode()
 		tempNode.keys = append(tempNode.keys, leafNode.keys...)
 		tempNode.pointers = append(tempNode.pointers, leafNode.pointers...)
-		b.insertIntoLeaf(tempNode, targetKey, record)
+		b.insertIntoLeaf(tempNode, targetKey, entry)
 		siblingNode.lastOrNextNode = leafNode.lastOrNextNode
 		leafNode.lastOrNextNode = siblingNode
 		leafNode.keys = make([]Key, 0)
@@ -327,7 +329,7 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 	}
 	return currentNode
 }
-func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Record) {
+func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Entry) {
 	number := -1
 	for i, key := range leafNode.keys {
 		if key.compare(targetKey) == 1 {
@@ -482,25 +484,25 @@ func (n *Node) findRecord(targetKey Key) ([]byte, bool) {
 	// 可使用二分查找，待优化
 	for i, key := range n.keys {
 		if key.compare(targetKey) == 0 {
-			record := n.pointers[i]
-			if value, ok := record.(*Record); ok {
+			entry := n.pointers[i]
+			if value, ok := entry.(*Entry); ok {
 				return value.value, true
 			}
-			panic("should be record")
+			panic("should be entry")
 		}
 	}
 	return []byte{}, false
 }
 
-func (n *Node) updateRecord(targetKey Key, record *Record) bool {
+func (n *Node) updateRecord(targetKey Key, entry *Entry) bool {
 	// 如果值已经存在则更新
 	for i, k := range n.keys {
 		if targetKey.compare(k) == 0 {
-			r, ok := n.pointers[i].(*Record)
+			r, ok := n.pointers[i].(*Entry)
 			if !ok {
-				panic("should be *record")
+				panic("should be *entry")
 			}
-			r.value = record.value
+			r.value = entry.value
 			n.pointers[i] = r
 			return true
 		}
