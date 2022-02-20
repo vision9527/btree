@@ -104,7 +104,7 @@ func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	return value, ok
 }
 func (b *BPlusTree) FindRange(start, end string) []string {
-	return []string{}
+	panic("need implement")
 }
 
 func (b *BPlusTree) Print() {
@@ -295,34 +295,27 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		parentNode.pointers = make([]interface{}, 0)
 		siblingParentNode := makeEmptyInternalNode()
 		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2]...)
-		parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2]...)
-		lst, ok := tempPointers[b.internalMaxSize/2].(*Node)
-		if !ok {
-			panic("should be *Node")
-		}
-		parentNode.lastOrNextNode = lst
-		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[b.internalMaxSize/2+1:]...)
-		siblingParentNode.pointers = append(siblingParentNode.pointers, tempPointers[b.internalMaxSize/2+1:b.internalMaxSize+1]...)
-		lst, ok = tempPointers[b.internalMaxSize+1].(*Node)
-		if !ok {
-			panic("should be *Node")
-		}
-		siblingParentNode.lastOrNextNode = lst
-		siblingParentNode.parent = parentNode.parent
-		childKeyTwo := tempKeys[b.internalMaxSize/2]
-		for _, k := range parentNode.pointers {
-			if k == newNode {
+		// parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2]...)
+		for i := 0; i < b.internalMaxSize/2; i++ {
+			childPointer := tempPointers[i]
+			parentNode.pointers = append(parentNode.pointers, childPointer)
+			if childPointer == newNode {
 				newNode.parent = parentNode
 			}
-			if k == oldNode {
+			if childPointer == oldNode {
 				oldNode.parent = parentNode
 			}
-			p, ok := k.(*Node)
+			p, ok := childPointer.(*Node)
 			if !ok {
 				panic("should be *node")
 			}
 			p.parent = parentNode
 		}
+		lst, ok := tempPointers[b.internalMaxSize/2].(*Node)
+		if !ok {
+			panic("should be *Node")
+		}
+		parentNode.lastOrNextNode = lst
 		parentNode.lastOrNextNode.parent = parentNode
 		if parentNode.lastOrNextNode == newNode {
 			newNode.parent = parentNode
@@ -331,26 +324,37 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 			oldNode.parent = parentNode
 		}
 
-		for _, k := range siblingParentNode.pointers {
-			if k == newNode {
+		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[b.internalMaxSize/2+1:]...)
+		// siblingParentNode.pointers = append(siblingParentNode.pointers, tempPointers[b.internalMaxSize/2+1:b.internalMaxSize+1]...)
+		for i := b.internalMaxSize/2 + 1; i < b.internalMaxSize+1; i++ {
+			childPointer := tempPointers[i]
+			siblingParentNode.pointers = append(siblingParentNode.pointers, childPointer)
+			if childPointer == newNode {
 				newNode.parent = siblingParentNode
 			}
-			if k == oldNode {
+			if childPointer == oldNode {
 				oldNode.parent = siblingParentNode
 			}
-			p, ok := k.(*Node)
+			p, ok := childPointer.(*Node)
 			if !ok {
 				panic("should be *node")
 			}
 			p.parent = siblingParentNode
 		}
+		lst, ok = tempPointers[b.internalMaxSize+1].(*Node)
+		if !ok {
+			panic("should be *Node")
+		}
+		siblingParentNode.lastOrNextNode = lst
+		siblingParentNode.lastOrNextNode.parent = siblingParentNode
 		if siblingParentNode.lastOrNextNode == newNode {
 			newNode.parent = siblingParentNode
 		}
 		if siblingParentNode.lastOrNextNode == oldNode {
 			oldNode.parent = siblingParentNode
 		}
-		siblingParentNode.lastOrNextNode.parent = siblingParentNode
+
+		childKeyTwo := tempKeys[b.internalMaxSize/2]
 		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
 	}
 
