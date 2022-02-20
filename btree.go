@@ -1,4 +1,4 @@
-package main
+package btree
 
 import (
 	"errors"
@@ -104,7 +104,28 @@ func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	return value, ok
 }
 func (b *BPlusTree) FindRange(start, end string) []string {
-	panic("need implement")
+	startKey := Key(start)
+	endKey := Key(end)
+	leafNode := b.findLeafNode(Key(start))
+	currentNode := leafNode
+	result := make([]string, 0)
+	for currentNode != nil {
+		b.stat.IncrCount()
+		for i, key := range currentNode.keys {
+			if key.Compare(startKey) >= 0 && key.Compare(endKey) <= 0 {
+				record, ok := currentNode.pointers[i].(*Record)
+				if !ok {
+					panic("should be *Record")
+				}
+				result = append(result, record.ToValue())
+			}
+			if key.Compare(endKey) == 1 {
+				return result
+			}
+		}
+		currentNode = currentNode.lastOrNextNode
+	}
+	return result
 }
 
 func (b *BPlusTree) Print() {
@@ -204,20 +225,6 @@ func (b *BPlusTree) insert(targetKey Key, record *Record) {
 
 		childKey := siblingNode.keys[0]
 		b.insertIntoParent(leafNode, siblingNode, childKey)
-	}
-}
-
-func (b *BPlusTree) printLeafNode(node *Node) {
-	for node != nil && len(node.pointers) != 0 {
-		if len(node.pointers) != 0 {
-			for _, r := range node.pointers {
-				value, _ := r.(*Record)
-				fmt.Print(string(value.value))
-
-			}
-			fmt.Println()
-		}
-		node = node.lastOrNextNode
 	}
 }
 

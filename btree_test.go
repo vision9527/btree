@@ -1,4 +1,4 @@
-package main
+package btree
 
 import (
 	"math/rand"
@@ -576,4 +576,54 @@ func TestInsertCaseForStat(t *testing.T) {
 		t.Fatalf("value should be %s, but value:%s", key, v)
 	}
 	t.Logf("load node count: %d\n", tree.stat.Count)
+}
+
+func TestBPlusTree_FindRange(t *testing.T) {
+	tree, _ := StartNewTree(5, 5)
+	testkv := GenTestKeyAndValue(10)
+	for i := 0; i < len(testkv); i++ {
+		key := testkv[i]
+		value := key
+		tree.Insert(key, value)
+	}
+	startIndex := 1
+	endIndex := 15
+	result := tree.FindRange(testkv[startIndex], testkv[endIndex])
+	t.Logf("testkv[startIndex]=%s, testkv[endIndex]=%s \n", testkv[startIndex], testkv[endIndex])
+	t.Logf("result=%s \n", result)
+	t.Logf("range:%d, result length=%d \n", endIndex-startIndex+1, len(result))
+	if testkv[startIndex] != result[0] {
+		t.Fatalf("result first should be: %s", testkv[startIndex])
+	}
+	if testkv[endIndex] != result[len(result)-1] {
+		t.Fatalf("result last should be: %s", testkv[endIndex])
+	}
+	if len(result) != (endIndex - startIndex + 1) {
+		t.Fatalf("result length should be: %s", testkv[endIndex])
+	}
+}
+
+func TestBPlusTree_FindRangeShuffle(t *testing.T) {
+	tree, _ := StartNewTree(5, 5)
+	testkv := GenTestKeyAndValue(6)
+	ShuffleTestkv(testkv)
+	for i := 0; i < len(testkv); i++ {
+		key := testkv[i]
+		value := key
+		tree.Insert(key, value)
+	}
+	tree.Print()
+	start := "aa"
+	end := "ccc"
+	tree.stat.ResetCount()
+	result := tree.FindRange(start, end)
+	t.Logf("start=%s, end=%s \n", start, end)
+	t.Logf("length:%d, result=%s \n", len(result), result)
+	if start != result[0] {
+		t.Fatalf("result first should be: %s", start)
+	}
+	if end != result[len(result)-1] {
+		t.Fatalf("result last should be: %s", end)
+	}
+	t.Logf("load node count:%d", tree.stat.Count)
 }
