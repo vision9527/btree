@@ -320,7 +320,6 @@ func TestInsertCaseTwo(t *testing.T) {
 
 func TestInsertCaseShuffleTestkv1(t *testing.T) {
 	tree, _ := StartNewTree(10, 10)
-	tree.SetStat(new(Stat))
 	testkv := GenTestRandomKeyAndValue(10000, 5)
 	ShuffleTestkv(testkv)
 	for i := 0; i < len(testkv); i++ {
@@ -340,7 +339,7 @@ func TestInsertCaseShuffleTestkv1(t *testing.T) {
 		}
 	}
 	tree.CountNode()
-	t.Logf("CountNode: %d, Level: %d", tree.GetNodeCount(), tree.GetLevel())
+	t.Logf("Sum Node: %d, Level: %d", tree.GetNodeCount(), tree.GetLevel())
 
 	key := testkv[2]
 	v, ok := tree.Find(key)
@@ -551,7 +550,6 @@ func TestInsertCaseDuplicated(t *testing.T) {
 
 func TestInsertCaseForStat(t *testing.T) {
 	tree, _ := StartDefaultNewTree()
-	tree.SetStat(new(Stat))
 	testkv := GenTestRandomKeyAndValue(100000, 10)
 	ShuffleTestkv(testkv)
 	for i := 0; i < len(testkv); i++ {
@@ -626,7 +624,6 @@ func TestBPlusTree_FindRangeOrder(t *testing.T) {
 
 func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	tree, _ := StartNewTree(5, 5)
-	tree.SetStat(new(Stat))
 	testkv := GenTestKeyAndValue(6)
 	originTestKv := make([]string, 0)
 	originTestKv = append(originTestKv, testkv...)

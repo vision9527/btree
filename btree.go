@@ -43,36 +43,23 @@ type Stat struct {
 }
 
 func (b *Stat) incrCount() {
-	if b != nil {
-		b.count++
-	}
+	b.count++
 }
 
 func (b *Stat) resetCount() {
-	if b != nil {
-		b.count = 0
-	}
+	b.count = 0
 }
 
 func (b *Stat) GetCount() int64 {
-	if b != nil {
-		return b.count
-	}
-	return 0
+	return b.count
 }
 
 func (b *Stat) GetLevel() int64 {
-	if b != nil {
-		return b.level
-	}
-	return 0
+	return b.level
 }
 
 func (b *Stat) GetNodeCount() int64 {
-	if b != nil {
-		return b.nodeCount
-	}
-	return 0
+	return b.nodeCount
 }
 
 type Key string
@@ -100,6 +87,7 @@ func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
 	return &BPlusTree{
 		leafMaxSize:     leafMaxSize,
 		internalMaxSize: internalMaxSize,
+		Stat:            new(Stat),
 	}, nil
 }
 
@@ -107,6 +95,7 @@ func StartDefaultNewTree() (*BPlusTree, error) {
 	return &BPlusTree{
 		leafMaxSize:     defaultLeafMaxSize,
 		internalMaxSize: defaultInternalMaxSize,
+		Stat:            new(Stat),
 	}, nil
 }
 
@@ -124,10 +113,6 @@ func makeEmptyInternalNode() *Node {
 		keys:     make([]Key, 0),
 		pointers: make([]interface{}, 0),
 	}
-}
-
-func (b *BPlusTree) SetStat(stat *Stat) {
-	b.Stat = new(Stat)
 }
 
 // 功能接口
