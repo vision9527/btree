@@ -315,15 +315,15 @@ func TestInsertCaseTwo(t *testing.T) {
 
 }
 
-func TestInsertCaseShuffleTestkv(t *testing.T) {
-	tree, _ := StartNewTree(4, 4)
-	testkv := GenTestKeyAndValue(1)
+func TestInsertCaseShuffleTestkv1(t *testing.T) {
+	tree, _ := StartNewTree(10, 10)
+	tree.SetStat(new(Stat))
+	testkv := GenTestRandomKeyAndValue(10000, 5)
 	ShuffleTestkv(testkv)
-	t.Log("TestInsertCaseShuffleTestkv_testkv:", testkv)
 	for i := 0; i < len(testkv); i++ {
-		tree.InsertByte(testkv[i], []byte(testkv[i]))
+		key, value := testkv[i], testkv[i]
+		tree.InsertByte(key, []byte(value))
 	}
-	tree.Print()
 
 	for i := 0; i < len(testkv); i++ {
 		key := testkv[i]
@@ -336,6 +336,18 @@ func TestInsertCaseShuffleTestkv(t *testing.T) {
 			t.Fatalf("value should be %s, but value:%s", key, v)
 		}
 	}
+	tree.CountNode()
+	t.Logf("CountNode: %d, Level: %d", tree.GetNodeCount(), tree.GetLevel())
+	tree.ResetCount()
+	key := testkv[2]
+	v, ok := tree.Find(key)
+	if !ok {
+		t.Fatalf("value:%s, should exsit", key)
+	}
+	if v != key {
+		t.Fatalf("value should be %s, but value:%s", key, v)
+	}
+	t.Logf("load node count: %d", tree.GetCount())
 }
 
 func TestInsertCaseShuffleTestkv2(t *testing.T) {
@@ -535,7 +547,7 @@ func TestInsertCaseDuplicated(t *testing.T) {
 }
 
 func TestInsertCaseForStat(t *testing.T) {
-	tree, _ := StartNewTree(20, 10)
+	tree, _ := StartDefaultNewTree()
 	tree.SetStat(new(Stat))
 	testkv := GenTestRandomKeyAndValue(100000, 10)
 	ShuffleTestkv(testkv)

@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync/atomic"
 )
+
+const defaultLeafMaxSize = 200
+const defaultInternalMaxSize = 100
 
 type BPlusTree struct {
 	// 叶子结点key最多数量, key半满条件: leafMaxSize/2，指针的数量: leafMaxSize+1, 最后一个指针在node的lastOrNextNode
@@ -32,16 +34,12 @@ type Node struct {
 
 // 查询统计（测试使用）
 type Stat struct {
-	// 查询遍历的节点数
-	Count int64
-}
-
-func (s *Stat) incrCount() {
-	atomic.AddInt64(&s.Count, 1)
-}
-
-func (s *Stat) resetCount() {
-	atomic.StoreInt64(&s.Count, 0)
+	// 查询遍历到的节点数
+	count int64
+	// 树的节点总数
+	nodeCount int64
+	// 数的高度
+	level int64
 }
 
 type Key string
@@ -74,8 +72,8 @@ func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
 
 func StartDefaultNewTree() (*BPlusTree, error) {
 	return &BPlusTree{
-		leafMaxSize:     200,
-		internalMaxSize: 100,
+		leafMaxSize:     defaultLeafMaxSize,
+		internalMaxSize: defaultInternalMaxSize,
 	}, nil
 }
 
@@ -161,12 +159,50 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 	return result
 }
 
+// 统计结点数量
+func (b *BPlusTree) CountNode() {
+	queue := make([]interface{}, 0)
+	queue = append(queue, b.root)
+	b.stat.level = 0
+	b.stat.nodeCount = 0
+	for len(queue) != 0 {
+		b.stat.level++
+		size := len(queue)
+		for i := 0; i < size; i++ {
+			b.stat.nodeCount++
+			nodeI := queue[i]
+			if nodeI == nil {
+				continue
+			}
+			node, ok := nodeI.(*Node)
+			if !ok {
+				panic("should node")
+			}
+			if node.isLeaf {
+				continue
+			} else {
+				if len(node.pointers) != 0 && !node.isLeaf {
+					queue = append(queue, node.pointers...)
+					queue = append(queue, node.lastOrNextNode)
+				}
+			}
+		}
+
+		if len(queue) > size {
+			queue = queue[size:]
+		} else {
+			break
+		}
+	}
+}
+
 func (b *BPlusTree) Print() {
 	fmt.Println("----------------------------------------------------------------------------------------------------start print tree")
 	queue := make([]interface{}, 0)
 	queue = append(queue, b.root)
-	level := 1
+	level := 0
 	for len(queue) != 0 {
+		level++
 		size := len(queue)
 		str := ""
 		for i := 0; i < size; i++ {
@@ -210,7 +246,6 @@ func (b *BPlusTree) Print() {
 		str = strings.Trim(str, " &&")
 		str = strings.Trim(str, "---")
 		fmt.Printf("level %d: %s\n", level, str)
-		level++
 		if len(queue) > size {
 			queue = queue[size:]
 		} else {
@@ -402,19 +437,33 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 
 func (b *BPlusTree) IncrCount() {
 	if b.stat != nil {
-		b.stat.incrCount()
+		b.stat.count++
 	}
 }
 
 func (b *BPlusTree) ResetCount() {
 	if b.stat != nil {
-		b.stat.resetCount()
+		b.stat.count = 0
 	}
 }
 
 func (b *BPlusTree) GetCount() int64 {
 	if b.stat != nil {
-		return b.stat.Count
+		return b.stat.count
+	}
+	return 0
+}
+
+func (b *BPlusTree) GetLevel() int64 {
+	if b.stat != nil {
+		return b.stat.level
+	}
+	return 0
+}
+
+func (b *BPlusTree) GetNodeCount() int64 {
+	if b.stat != nil {
+		return b.stat.nodeCount
 	}
 	return 0
 }
@@ -424,11 +473,12 @@ func (b *BPlusTree) deleteEntry(node *Node, key Key, pointer interface{}) {}
 
 func (n *Node) findRecord(targetKey Key) ([]byte, bool) {
 	if !n.isLeaf {
-		panic("not leaf node")
+		panic("should be leaf node")
 	}
 	if len(n.keys) == 0 {
 		return []byte{}, false
 	}
+	// 可使用二分查找，待优化
 	for i, key := range n.keys {
 		if key.compare(targetKey) == 0 {
 			record := n.pointers[i]
