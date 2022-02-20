@@ -123,14 +123,15 @@ func (b *BPlusTree) DeleteByte(key string) (value []byte, err error) {
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
 	value, ok := leafNode.findRecord(Key(targetKey))
-	b.IncrCount()
+	b.incrCount()
 	return string(value), ok
 }
 
 func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
+	b.resetCount()
 	value, ok := leafNode.findRecord(Key(targetKey))
-	b.IncrCount()
+	b.incrCount()
 	return value, ok
 }
 
@@ -141,7 +142,7 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 	currentNode := leafNode
 	result := make([]string, 0)
 	for currentNode != nil {
-		b.IncrCount()
+		b.incrCount()
 		for i, key := range currentNode.keys {
 			if key.compare(startKey) >= 0 && key.compare(endKey) <= 0 {
 				record, ok := currentNode.pointers[i].(*Record)
@@ -300,7 +301,7 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 	tKey := Key(targetKey)
 	currentNode := b.root
 	for !currentNode.isLeaf {
-		b.IncrCount()
+		b.incrCount()
 		number := -1
 		for i, key := range currentNode.keys {
 			if tKey.compare(key) == 0 {
@@ -435,13 +436,13 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 
 }
 
-func (b *BPlusTree) IncrCount() {
+func (b *BPlusTree) incrCount() {
 	if b.stat != nil {
 		b.stat.count++
 	}
 }
 
-func (b *BPlusTree) ResetCount() {
+func (b *BPlusTree) resetCount() {
 	if b.stat != nil {
 		b.stat.count = 0
 	}

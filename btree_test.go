@@ -338,7 +338,7 @@ func TestInsertCaseShuffleTestkv1(t *testing.T) {
 	}
 	tree.CountNode()
 	t.Logf("CountNode: %d, Level: %d", tree.GetNodeCount(), tree.GetLevel())
-	tree.ResetCount()
+
 	key := testkv[2]
 	v, ok := tree.Find(key)
 	if !ok {
@@ -558,7 +558,7 @@ func TestInsertCaseForStat(t *testing.T) {
 	}
 	key := testkv[100]
 	value := testkv[100] + "_v"
-	tree.ResetCount()
+
 	v, ok := tree.Find(key)
 	if !ok {
 		t.Fatalf("value:%s, should exsit", key)
@@ -569,7 +569,7 @@ func TestInsertCaseForStat(t *testing.T) {
 	t.Logf("load node count: %d\n", tree.GetCount())
 	key = testkv[1110]
 	value = testkv[1110] + "_v"
-	tree.ResetCount()
+
 	v, ok = tree.Find(key)
 	if !ok {
 		t.Fatalf("value:%s, should exsit", key)
@@ -580,7 +580,7 @@ func TestInsertCaseForStat(t *testing.T) {
 	t.Logf("load node count: %d\n", tree.GetCount())
 	key = testkv[343]
 	value = testkv[343] + "_v"
-	tree.ResetCount()
+
 	v, ok = tree.Find(key)
 	if !ok {
 		t.Fatalf("value:%s, should exsit", key)
@@ -629,7 +629,7 @@ func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	tree.Print()
 	start := "aa"
 	end := "ccc"
-	tree.ResetCount()
+
 	result := tree.FindRange(start, end)
 	t.Logf("start=%s, end=%s \n", start, end)
 	t.Logf("length:%d, result=%s \n", len(result), result)
