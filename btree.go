@@ -36,11 +36,11 @@ type Stat struct {
 	Count int64
 }
 
-func (s *Stat) IncrCount() {
+func (s *Stat) incrCount() {
 	atomic.AddInt64(&s.Count, 1)
 }
 
-func (s *Stat) ResetCount() {
+func (s *Stat) resetCount() {
 	atomic.StoreInt64(&s.Count, 0)
 }
 
@@ -69,7 +69,13 @@ func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
 	return &BPlusTree{
 		leafMaxSize:     leafMaxSize,
 		internalMaxSize: internalMaxSize,
-		stat:            new(Stat),
+	}, nil
+}
+
+func StartDefaultNewTree() (*BPlusTree, error) {
+	return &BPlusTree{
+		leafMaxSize:     200,
+		internalMaxSize: 100,
 	}, nil
 }
 
@@ -87,6 +93,10 @@ func makeEmptyInternalNode() *Node {
 		keys:     make([]Key, 0),
 		pointers: make([]interface{}, 0),
 	}
+}
+
+func (b *BPlusTree) SetStat(stat *Stat) {
+	b.stat = new(Stat)
 }
 
 // 功能接口
@@ -115,14 +125,14 @@ func (b *BPlusTree) DeleteByte(key string) (value []byte, err error) {
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
 	value, ok := leafNode.findRecord(Key(targetKey))
-	b.stat.IncrCount()
+	b.IncrCount()
 	return string(value), ok
 }
 
 func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
 	value, ok := leafNode.findRecord(Key(targetKey))
-	b.stat.IncrCount()
+	b.IncrCount()
 	return value, ok
 }
 
@@ -133,7 +143,7 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 	currentNode := leafNode
 	result := make([]string, 0)
 	for currentNode != nil {
-		b.stat.IncrCount()
+		b.IncrCount()
 		for i, key := range currentNode.keys {
 			if key.compare(startKey) >= 0 && key.compare(endKey) <= 0 {
 				record, ok := currentNode.pointers[i].(*Record)
@@ -255,7 +265,7 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 	tKey := Key(targetKey)
 	currentNode := b.root
 	for !currentNode.isLeaf {
-		b.stat.IncrCount()
+		b.IncrCount()
 		number := -1
 		for i, key := range currentNode.keys {
 			if tKey.compare(key) == 0 {
@@ -388,6 +398,25 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
 	}
 
+}
+
+func (b *BPlusTree) IncrCount() {
+	if b.stat != nil {
+		b.stat.incrCount()
+	}
+}
+
+func (b *BPlusTree) ResetCount() {
+	if b.stat != nil {
+		b.stat.resetCount()
+	}
+}
+
+func (b *BPlusTree) GetCount() int64 {
+	if b.stat != nil {
+		return b.stat.Count
+	}
+	return 0
 }
 
 func (b *BPlusTree) delete(key Key, pointer interface{})                  {}

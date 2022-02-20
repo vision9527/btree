@@ -536,6 +536,7 @@ func TestInsertCaseDuplicated(t *testing.T) {
 
 func TestInsertCaseForStat(t *testing.T) {
 	tree, _ := StartNewTree(20, 10)
+	tree.SetStat(new(Stat))
 	testkv := GenTestRandomKeyAndValue(100000, 10)
 	ShuffleTestkv(testkv)
 	for i := 0; i < len(testkv); i++ {
@@ -545,7 +546,7 @@ func TestInsertCaseForStat(t *testing.T) {
 	}
 	key := testkv[100]
 	value := testkv[100] + "_v"
-	tree.stat.ResetCount()
+	tree.ResetCount()
 	v, ok := tree.Find(key)
 	if !ok {
 		t.Fatalf("value:%s, should exsit", key)
@@ -553,10 +554,10 @@ func TestInsertCaseForStat(t *testing.T) {
 	if v != value {
 		t.Fatalf("value should be %s, but value:%s", key, v)
 	}
-	t.Logf("load node count: %d\n", tree.stat.Count)
+	t.Logf("load node count: %d\n", tree.GetCount())
 	key = testkv[1110]
 	value = testkv[1110] + "_v"
-	tree.stat.ResetCount()
+	tree.ResetCount()
 	v, ok = tree.Find(key)
 	if !ok {
 		t.Fatalf("value:%s, should exsit", key)
@@ -564,10 +565,10 @@ func TestInsertCaseForStat(t *testing.T) {
 	if v != value {
 		t.Fatalf("value should be %s, but value:%s", key, v)
 	}
-	t.Logf("load node count: %d\n", tree.stat.Count)
+	t.Logf("load node count: %d\n", tree.GetCount())
 	key = testkv[343]
 	value = testkv[343] + "_v"
-	tree.stat.ResetCount()
+	tree.ResetCount()
 	v, ok = tree.Find(key)
 	if !ok {
 		t.Fatalf("value:%s, should exsit", key)
@@ -575,7 +576,7 @@ func TestInsertCaseForStat(t *testing.T) {
 	if v != value {
 		t.Fatalf("value should be %s, but value:%s", key, v)
 	}
-	t.Logf("load node count: %d\n", tree.stat.Count)
+	t.Logf("load node count: %d\n", tree.GetCount())
 }
 
 func TestBPlusTree_FindRange(t *testing.T) {
@@ -605,6 +606,7 @@ func TestBPlusTree_FindRange(t *testing.T) {
 
 func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	tree, _ := StartNewTree(5, 5)
+	tree.SetStat(new(Stat))
 	testkv := GenTestKeyAndValue(6)
 	ShuffleTestkv(testkv)
 	for i := 0; i < len(testkv); i++ {
@@ -615,7 +617,7 @@ func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	tree.Print()
 	start := "aa"
 	end := "ccc"
-	tree.stat.ResetCount()
+	tree.ResetCount()
 	result := tree.FindRange(start, end)
 	t.Logf("start=%s, end=%s \n", start, end)
 	t.Logf("length:%d, result=%s \n", len(result), result)
@@ -625,5 +627,5 @@ func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	if end != result[len(result)-1] {
 		t.Fatalf("result last should be: %s", end)
 	}
-	t.Logf("load node count:%d", tree.stat.Count)
+	t.Logf("load node count:%d", tree.GetCount())
 }
