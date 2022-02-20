@@ -15,10 +15,10 @@ func makeTestLeafNode(keys []string, values []string) *Node {
 		n.keys = append(n.keys, k)
 	}
 	for _, v := range values {
-		record := &Record{
+		entry := &Entry{
 			value: []byte(v),
 		}
-		n.pointers = append(n.pointers, record)
+		n.pointers = append(n.pointers, entry)
 	}
 	return n
 }
@@ -83,15 +83,15 @@ func TestBPlusTreeFind_rootDontHaveChild(t *testing.T) {
 		pointers: make([]interface{}, 0),
 	}
 	tree.root = root
-	p1 := &Record{
+	p1 := &Entry{
 		value: []byte("test_value1"),
 	}
 	root.pointers = append(root.pointers, p1)
-	p2 := &Record{
+	p2 := &Entry{
 		value: []byte("test_value2"),
 	}
 	root.pointers = append(root.pointers, p2)
-	p3 := &Record{
+	p3 := &Entry{
 		value: []byte("test_value3"),
 	}
 	root.pointers = append(root.pointers, p3)
@@ -171,16 +171,16 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	leafNode := makeTestLeafNode([]string{"key1", "key2", "key4", "key5"},
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
 	targetKey := Key("key3")
-	record := &Record{
+	entry := &Entry{
 		value: []byte("key3_value"),
 	}
-	tree.insertIntoLeaf(leafNode, targetKey, record)
+	tree.insertIntoLeaf(leafNode, targetKey, entry)
 	if targetKey.compare(leafNode.keys[2]) != 0 {
 		t.Fatalf("should be key3")
 	}
-	r, ok := leafNode.pointers[2].(*Record)
+	r, ok := leafNode.pointers[2].(*Entry)
 	if !ok {
-		t.Fatalf("should be record")
+		t.Fatalf("should be entry")
 	}
 	if string(r.value) != "key3_value" {
 		t.Fatalf("should be key3_value")
@@ -188,30 +188,30 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	t.Logf("keys: %v", leafNode.keys)
 	values := make([]string, 0)
 	for _, i := range leafNode.pointers {
-		r, _ := i.(*Record)
+		r, _ := i.(*Entry)
 		values = append(values, string(r.value))
 	}
-	t.Logf("record: %v", values)
+	t.Logf("entry: %v", values)
 	targetKey = Key("key0")
-	record = &Record{
+	entry = &Entry{
 		value: []byte("key0_value"),
 	}
-	tree.insertIntoLeaf(leafNode, targetKey, record)
+	tree.insertIntoLeaf(leafNode, targetKey, entry)
 	if targetKey.compare(leafNode.keys[0]) != 0 {
 		t.Fatalf("should be key0")
 	}
 	t.Logf("keys: %v", leafNode.keys)
 	targetKey = Key("key6")
-	record = &Record{
+	entry = &Entry{
 		value: []byte("key6_value"),
 	}
-	tree.insertIntoLeaf(leafNode, targetKey, record)
+	tree.insertIntoLeaf(leafNode, targetKey, entry)
 	if targetKey.compare(leafNode.keys[6]) != 0 {
 		t.Fatalf("should be key6")
 	}
-	r, ok = leafNode.pointers[6].(*Record)
+	r, ok = leafNode.pointers[6].(*Entry)
 	if !ok {
-		t.Fatalf("should be record")
+		t.Fatalf("should be entry")
 	}
 	if string(r.value) != "key6_value" {
 		t.Fatalf("should be key6_value")
@@ -223,13 +223,13 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 	leafNode := makeTestLeafNode([]string{"key1", "key2", "key4", "key5"},
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
 	targetKey := Key("key2")
-	record := &Record{
+	entry := &Entry{
 		value: []byte("key2222_value"),
 	}
-	leafNode.updateRecord(targetKey, record)
-	r, ok := leafNode.pointers[1].(*Record)
+	leafNode.updateRecord(targetKey, entry)
+	r, ok := leafNode.pointers[1].(*Entry)
 	if !ok {
-		t.Fatalf("should be record")
+		t.Fatalf("should be entry")
 	}
 	if string(r.value) != "key2222_value" {
 		t.Fatalf("should be key2222_value, actully value: %v", string(r.value))
