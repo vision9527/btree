@@ -548,48 +548,27 @@ func TestInsertCaseDuplicated(t *testing.T) {
 
 }
 
-func TestInsertCaseForStat(t *testing.T) {
-	tree, _ := StartDefaultNewTree()
-	testkv := GenTestRandomKeyAndValue(100000, 10)
-	ShuffleTestkv(testkv)
+func TestBPlusTree_findFirstLeafNode(t *testing.T) {
+	tree, _ := StartNewTree(5, 5)
+	testkv := GenTestKeyAndValue(1000)
 	for i := 0; i < len(testkv); i++ {
 		key := testkv[i]
-		value := key + "_" + "v"
+		value := key
 		tree.Insert(key, value)
 	}
-	key := testkv[100]
-	value := testkv[100] + "_v"
-
-	v, ok := tree.Find(key)
-	if !ok {
-		t.Fatalf("value:%s, should exsit", key)
+	firstLeafNode := tree.findFirstLeafNode()
+	currentNode := firstLeafNode
+	count := 0
+	for currentNode != nil {
+		for _, k := range currentNode.keys {
+			tk := testkv[count]
+			if k.compare(Key(tk)) != 0 {
+				t.Fatalf("should be:%s", tk)
+			}
+			count++
+		}
+		currentNode = currentNode.lastOrNextNode
 	}
-	if v != value {
-		t.Fatalf("value should be %s, but value:%s", key, v)
-	}
-	t.Logf("load node count: %d\n", tree.GetCount())
-	key = testkv[1110]
-	value = testkv[1110] + "_v"
-
-	v, ok = tree.Find(key)
-	if !ok {
-		t.Fatalf("value:%s, should exsit", key)
-	}
-	if v != value {
-		t.Fatalf("value should be %s, but value:%s", key, v)
-	}
-	t.Logf("load node count: %d\n", tree.GetCount())
-	key = testkv[343]
-	value = testkv[343] + "_v"
-
-	v, ok = tree.Find(key)
-	if !ok {
-		t.Fatalf("value:%s, should exsit", key)
-	}
-	if v != value {
-		t.Fatalf("value should be %s, but value:%s", key, v)
-	}
-	t.Logf("load node count: %d\n", tree.GetCount())
 }
 
 func TestBPlusTree_FindRangeOrder(t *testing.T) {

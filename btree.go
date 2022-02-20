@@ -99,22 +99,6 @@ func StartDefaultNewTree() (*BPlusTree, error) {
 	}, nil
 }
 
-func makeEmptyLeafNode() *Node {
-	return &Node{
-		isLeaf:   true,
-		keys:     make([]Key, 0),
-		pointers: make([]interface{}, 0),
-	}
-}
-
-func makeEmptyInternalNode() *Node {
-	return &Node{
-		isLeaf:   false,
-		keys:     make([]Key, 0),
-		pointers: make([]interface{}, 0),
-	}
-}
-
 // 功能接口
 func (b *BPlusTree) Insert(key, value string) {
 	pointer := &Entry{
@@ -292,10 +276,26 @@ func (b *BPlusTree) Print() {
 }
 
 // 内部方法
+func (b *BPlusTree) makeEmptyLeafNode() *Node {
+	return &Node{
+		isLeaf:   true,
+		keys:     make([]Key, 0, b.leafMaxSize),
+		pointers: make([]interface{}, 0, b.internalMaxSize),
+	}
+}
+
+func (b *BPlusTree) makeEmptyInternalNode() *Node {
+	return &Node{
+		isLeaf:   false,
+		keys:     make([]Key, 0, b.leafMaxSize),
+		pointers: make([]interface{}, 0, b.internalMaxSize),
+	}
+}
+
 func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
 	var leafNode *Node
 	if b.root == nil {
-		leafNode = makeEmptyLeafNode()
+		leafNode = b.makeEmptyLeafNode()
 		b.root = leafNode
 		leafNode.keys = append(leafNode.keys, targetKey)
 		leafNode.pointers = append(leafNode.pointers, entry)
@@ -313,8 +313,8 @@ func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
 		b.insertIntoLeaf(leafNode, targetKey, entry)
 	} else {
 		// split
-		siblingNode := makeEmptyLeafNode()
-		tempNode := makeEmptyLeafNode()
+		siblingNode := b.makeEmptyLeafNode()
+		tempNode := b.makeEmptyLeafNode()
 		tempNode.keys = append(tempNode.keys, leafNode.keys...)
 		tempNode.pointers = append(tempNode.pointers, leafNode.pointers...)
 		b.insertIntoLeaf(tempNode, targetKey, entry)
@@ -330,6 +330,22 @@ func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
 		childKey := siblingNode.keys[0]
 		b.insertIntoParent(leafNode, siblingNode, childKey)
 	}
+}
+
+func (b *BPlusTree) findFirstLeafNode() *Node {
+	currentNode := b.root
+	for currentNode != nil {
+		if currentNode.isLeaf {
+			break
+		}
+		pointer := currentNode.pointers[0]
+		node, ok := pointer.(*Node)
+		if !ok {
+			panic("should be *node")
+		}
+		currentNode = node
+	}
+	return currentNode
 }
 
 func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
@@ -380,7 +396,7 @@ func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Entry) 
 }
 func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 	if oldNode.parent == nil {
-		newRoot := makeEmptyInternalNode()
+		newRoot := b.makeEmptyInternalNode()
 		newRoot.keys = append(newRoot.keys, childKey)
 		newRoot.pointers = append(newRoot.pointers, oldNode)
 		newRoot.lastOrNextNode = newNode
@@ -404,7 +420,7 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		tempPointers = append(tempPointers, tempNode.lastOrNextNode)
 		parentNode.keys = make([]Key, 0)
 		parentNode.pointers = make([]interface{}, 0)
-		siblingParentNode := makeEmptyInternalNode()
+		siblingParentNode := b.makeEmptyInternalNode()
 		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2]...)
 		// parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2]...)
 		for i := 0; i < b.internalMaxSize/2; i++ {
