@@ -157,7 +157,7 @@ func TestBPlusTreeFind_findRecord(t *testing.T) {
 	if !ok {
 		t.Fatalf("should find Singh_value")
 	}
-	if v != "Singh_value" {
+	if string(v) != "Singh_value" {
 		t.Fatalf("find Singh_value, but not correct")
 	}
 	_, ok = leafNode.findRecord(Key("trump"))
@@ -175,7 +175,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 		value: []byte("key3_value"),
 	}
 	tree.insertIntoLeaf(leafNode, targetKey, record)
-	if targetKey.Compare(leafNode.keys[2]) != 0 {
+	if targetKey.compare(leafNode.keys[2]) != 0 {
 		t.Fatalf("should be key3")
 	}
 	r, ok := leafNode.pointers[2].(*Record)
@@ -197,7 +197,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 		value: []byte("key0_value"),
 	}
 	tree.insertIntoLeaf(leafNode, targetKey, record)
-	if targetKey.Compare(leafNode.keys[0]) != 0 {
+	if targetKey.compare(leafNode.keys[0]) != 0 {
 		t.Fatalf("should be key0")
 	}
 	t.Logf("keys: %v", leafNode.keys)
@@ -206,7 +206,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 		value: []byte("key6_value"),
 	}
 	tree.insertIntoLeaf(leafNode, targetKey, record)
-	if targetKey.Compare(leafNode.keys[6]) != 0 {
+	if targetKey.compare(leafNode.keys[6]) != 0 {
 		t.Fatalf("should be key6")
 	}
 	r, ok = leafNode.pointers[6].(*Record)

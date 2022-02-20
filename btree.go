@@ -46,7 +46,7 @@ func (s *Stat) ResetCount() {
 
 type Key string
 
-func (k Key) Compare(target Key) int {
+func (k Key) compare(target Key) int {
 	return strings.Compare(k.toString(), target.toString())
 }
 
@@ -58,7 +58,7 @@ type Record struct {
 	value []byte
 }
 
-func (r *Record) ToValue() string {
+func (r *Record) toValue() string {
 	return string(r.value)
 }
 
@@ -103,13 +103,29 @@ func (b *BPlusTree) InsertByte(key string, value []byte) {
 	}
 	b.insert(Key(key), pointer)
 }
-func (b *BPlusTree) Remove(key string) {}
+
+func (b *BPlusTree) Delete(key string) (value string, err error) {
+	panic("need implement")
+}
+
+func (b *BPlusTree) DeleteByte(key string) (value []byte, err error) {
+	panic("need implement")
+}
+
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
+	leafNode := b.findLeafNode(Key(targetKey))
+	value, ok := leafNode.findRecord(Key(targetKey))
+	b.stat.IncrCount()
+	return string(value), ok
+}
+
+func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
 	value, ok := leafNode.findRecord(Key(targetKey))
 	b.stat.IncrCount()
 	return value, ok
 }
+
 func (b *BPlusTree) FindRange(start, end string) []string {
 	startKey := Key(start)
 	endKey := Key(end)
@@ -119,14 +135,14 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 	for currentNode != nil {
 		b.stat.IncrCount()
 		for i, key := range currentNode.keys {
-			if key.Compare(startKey) >= 0 && key.Compare(endKey) <= 0 {
+			if key.compare(startKey) >= 0 && key.compare(endKey) <= 0 {
 				record, ok := currentNode.pointers[i].(*Record)
 				if !ok {
 					panic("should be *Record")
 				}
-				result = append(result, record.ToValue())
+				result = append(result, record.toValue())
 			}
-			if key.Compare(endKey) == 1 {
+			if key.compare(endKey) == 1 {
 				return result
 			}
 		}
@@ -242,10 +258,10 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 		b.stat.IncrCount()
 		number := -1
 		for i, key := range currentNode.keys {
-			if tKey.Compare(key) == 0 {
+			if tKey.compare(key) == 0 {
 				number = i + 1
 				break
-			} else if tKey.Compare(key) < 1 {
+			} else if tKey.compare(key) < 1 {
 				number = i
 				break
 			}
@@ -268,7 +284,7 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Record) {
 	number := -1
 	for i, key := range leafNode.keys {
-		if key.Compare(targetKey) == 1 {
+		if key.compare(targetKey) == 1 {
 			number = i
 			break
 		}
@@ -377,29 +393,29 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 func (b *BPlusTree) delete(key Key, pointer interface{})                  {}
 func (b *BPlusTree) deleteEntry(node *Node, key Key, pointer interface{}) {}
 
-func (n *Node) findRecord(targetKey Key) (string, bool) {
+func (n *Node) findRecord(targetKey Key) ([]byte, bool) {
 	if !n.isLeaf {
 		panic("not leaf node")
 	}
 	if len(n.keys) == 0 {
-		return "", false
+		return []byte{}, false
 	}
 	for i, key := range n.keys {
-		if key.Compare(targetKey) == 0 {
+		if key.compare(targetKey) == 0 {
 			record := n.pointers[i]
 			if value, ok := record.(*Record); ok {
-				return string(value.value), true
+				return value.value, true
 			}
 			panic("should be record")
 		}
 	}
-	return "", false
+	return []byte{}, false
 }
 
 func (n *Node) updateRecord(targetKey Key, record *Record) bool {
 	// 如果值已经存在则更新
 	for i, k := range n.keys {
-		if targetKey.Compare(k) == 0 {
+		if targetKey.compare(k) == 0 {
 			r, ok := n.pointers[i].(*Record)
 			if !ok {
 				panic("should be *record")
