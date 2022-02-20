@@ -321,7 +321,7 @@ func TestInsertCaseShuffleTestkv(t *testing.T) {
 	ShuffleTestkv(testkv)
 	t.Log("TestInsertCaseShuffleTestkv_testkv:", testkv)
 	for i := 0; i < len(testkv); i++ {
-		tree.Insert(testkv[i], testkv[i])
+		tree.InsertByte(testkv[i], []byte(testkv[i]))
 	}
 	tree.Print()
 
@@ -398,7 +398,7 @@ func TestInsertCaseShuffleTestkv3(t *testing.T) {
 			for i := 0; i < len(testkv); i++ {
 				key := testkv[i]
 				value := key + "_" + "v"
-				tree.Insert(key, value)
+				tree.InsertByte(key, []byte(value))
 				v, ok := tree.Find(key)
 				if !ok {
 					t.Fatalf("value:%s, should exsit", key)
@@ -420,7 +420,7 @@ func TestInsertCaseShuffleTestkv4(t *testing.T) {
 		for i := 0; i < len(testkv); i++ {
 			key := testkv[i]
 			value := key + "_" + "v"
-			tree.Insert(key, value)
+			tree.InsertByte(key, []byte(value))
 			v, ok := tree.Find(key)
 			if !ok {
 				t.Fatalf("value:%s, should exsit", key)

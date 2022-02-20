@@ -8,14 +8,26 @@ import (
 )
 
 type BPlusTree struct {
-	// 叶子结点key最多数量, key半满条件: leafMaxSize/2
+	// 叶子结点key最多数量, key半满条件: leafMaxSize/2，指针的数量: leafMaxSize+1, 最后一个指针在node的lastOrNextNode
 	leafMaxSize int
-	// 非叶子结点key最多数量, key半满条件: internalMaxSize/2，指针的数量叫做fanout
+	// 非叶子结点key最多数量, key半满条件: internalMaxSize/2，指针的数量: internalMaxSize+1, 最后一个指针在node的lastOrNextNode
 	internalMaxSize int
 	// 0个或者2-n个子节点
 	root *Node
 	// 测试使用
 	stat *Stat
+}
+
+type Node struct {
+	// 是否是叶子结点
+	isLeaf bool
+	keys   []Key
+	// 非叶子结点是*Node，叶子结点是*Record, 最后一个指针挪到了lastOrNextNode
+	// 所以len(keys)=len(pointers)
+	pointers []interface{}
+	parent   *Node
+	// 最后一个指针
+	lastOrNextNode *Node
 }
 
 // 查询统计（测试使用）
@@ -30,18 +42,6 @@ func (s *Stat) IncrCount() {
 
 func (s *Stat) ResetCount() {
 	atomic.StoreInt64(&s.Count, 0)
-}
-
-type Node struct {
-	// 是否是叶子结点
-	isLeaf bool
-	keys   []Key
-	// 非叶子结点是*Node，叶子结点是*Record, 最后一个指针挪到了lastOrNextNode
-	// 所以len(keys)=len(pointers)
-	pointers []interface{}
-	parent   *Node
-	// 最后一个指针
-	lastOrNextNode *Node
 }
 
 type Key string
@@ -93,6 +93,13 @@ func makeEmptyInternalNode() *Node {
 func (b *BPlusTree) Insert(key, value string) {
 	pointer := &Record{
 		value: []byte(value),
+	}
+	b.insert(Key(key), pointer)
+}
+
+func (b *BPlusTree) InsertByte(key string, value []byte) {
+	pointer := &Record{
+		value: value,
 	}
 	b.insert(Key(key), pointer)
 }
