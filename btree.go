@@ -17,7 +17,7 @@ type BPlusTree struct {
 	// 0个或者2-n个子节点
 	root *Node
 	// 测试使用
-	stat *Stat
+	*Stat
 }
 
 type Node struct {
@@ -40,6 +40,39 @@ type Stat struct {
 	nodeCount int64
 	// 数的高度
 	level int64
+}
+
+func (b *Stat) incrCount() {
+	if b != nil {
+		b.count++
+	}
+}
+
+func (b *Stat) resetCount() {
+	if b != nil {
+		b.count = 0
+	}
+}
+
+func (b *Stat) GetCount() int64 {
+	if b != nil {
+		return b.count
+	}
+	return 0
+}
+
+func (b *Stat) GetLevel() int64 {
+	if b != nil {
+		return b.level
+	}
+	return 0
+}
+
+func (b *Stat) GetNodeCount() int64 {
+	if b != nil {
+		return b.nodeCount
+	}
+	return 0
 }
 
 type Key string
@@ -94,7 +127,7 @@ func makeEmptyInternalNode() *Node {
 }
 
 func (b *BPlusTree) SetStat(stat *Stat) {
-	b.stat = new(Stat)
+	b.Stat = new(Stat)
 }
 
 // 功能接口
@@ -166,13 +199,13 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 func (b *BPlusTree) CountNode() {
 	queue := make([]interface{}, 0)
 	queue = append(queue, b.root)
-	b.stat.level = 0
-	b.stat.nodeCount = 0
+	b.level = 0
+	b.nodeCount = 0
 	for len(queue) != 0 {
-		b.stat.level++
+		b.level++
 		size := len(queue)
 		for i := 0; i < size; i++ {
-			b.stat.nodeCount++
+			b.nodeCount++
 			nodeI := queue[i]
 			if nodeI == nil {
 				continue
@@ -436,39 +469,6 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
 	}
 
-}
-
-func (b *BPlusTree) incrCount() {
-	if b.stat != nil {
-		b.stat.count++
-	}
-}
-
-func (b *BPlusTree) resetCount() {
-	if b.stat != nil {
-		b.stat.count = 0
-	}
-}
-
-func (b *BPlusTree) GetCount() int64 {
-	if b.stat != nil {
-		return b.stat.count
-	}
-	return 0
-}
-
-func (b *BPlusTree) GetLevel() int64 {
-	if b.stat != nil {
-		return b.stat.level
-	}
-	return 0
-}
-
-func (b *BPlusTree) GetNodeCount() int64 {
-	if b.stat != nil {
-		return b.stat.nodeCount
-	}
-	return 0
 }
 
 func (b *BPlusTree) delete(key Key, pointer interface{})                  {}

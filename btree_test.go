@@ -240,8 +240,11 @@ func TestBPlusTree_updateRecord(t *testing.T) {
 func TestInsertCaseOne(t *testing.T) {
 	tree, _ := StartNewTree(3, 3)
 	tree.Insert("a", "a")
+	tree.Print()
 	tree.Insert("b", "b")
+	tree.Print()
 	tree.Insert("c", "c")
+	tree.Print()
 	tree.Insert("d", "d")
 	tree.Print()
 	tree.Insert("e", "e")
@@ -638,6 +641,9 @@ func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 		}
 		if kv == end {
 			endIndex = i
+		}
+		if startIndex != -1 && endIndex != -1 {
+			break
 		}
 	}
 	ShuffleTestkv(testkv)
