@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 )
 
 type BPlusTree struct {
@@ -13,6 +14,22 @@ type BPlusTree struct {
 	internalMaxSize int
 	// 0个或者2-n个子节点
 	root *Node
+	// 测试使用
+	stat *Stat
+}
+
+// 查询统计（测试使用）
+type Stat struct {
+	// 查询遍历的节点数
+	Count int64
+}
+
+func (s *Stat) IncrCount() {
+	atomic.AddInt64(&s.Count, 1)
+}
+
+func (s *Stat) ResetCount() {
+	atomic.StoreInt64(&s.Count, 0)
 }
 
 type Node struct {
@@ -52,6 +69,7 @@ func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
 	return &BPlusTree{
 		leafMaxSize:     leafMaxSize,
 		internalMaxSize: internalMaxSize,
+		stat:            new(Stat),
 	}, nil
 }
 
@@ -81,7 +99,9 @@ func (b *BPlusTree) Insert(key, value string) {
 func (b *BPlusTree) Remove(key string) {}
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	leafNode := b.findLeafNode(Key(targetKey))
-	return leafNode.findRecord(Key(targetKey))
+	value, ok := leafNode.findRecord(Key(targetKey))
+	b.stat.IncrCount()
+	return value, ok
 }
 func (b *BPlusTree) FindRange(start, end string) []string {
 	return []string{}
@@ -205,6 +225,7 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 	tKey := Key(targetKey)
 	currentNode := b.root
 	for !currentNode.isLeaf {
+		b.stat.IncrCount()
 		number := -1
 		for i, key := range currentNode.keys {
 			if tKey.Compare(key) == 0 {

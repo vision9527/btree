@@ -37,6 +37,24 @@ func GenTestKeyAndValue(repeatNum int) []string {
 	return result
 }
 
+func GenTestRandomKeyAndValue(amount int, n int) []string {
+	result := make([]string, 0)
+	for i := 0; i < amount; i++ {
+		result = append(result, RandStringRunes(n))
+	}
+	return result
+}
+
+func RandStringRunes(n int) string {
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz1234567890!@#$%^&*()_+{}:~.,")
+	rand.Seed(time.Now().UnixNano())
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
 func ShuffleTestkv(kv []string) {
 	rand.Seed(time.Now().Unix())
 	for len(kv) > 0 {
@@ -50,6 +68,11 @@ func ShuffleTestkv(kv []string) {
 func TestGenTestKeyAndValue_Print(t *testing.T) {
 	testkv := GenTestKeyAndValue(3)
 	t.Log("test_keys:", testkv)
+}
+
+func TestGenTestRandomKeyAndValue(t *testing.T) {
+	testkv := GenTestRandomKeyAndValue(100, 30)
+	t.Log("TestGenTestRandomKeyAndValue_keyvalue:", testkv)
 }
 
 func TestBPlusTreeFind_rootDontHaveChild(t *testing.T) {
@@ -271,7 +294,6 @@ func TestInsertCaseOne(t *testing.T) {
 
 }
 
-// 小fanout， 多key，value
 func TestInsertCaseTwo(t *testing.T) {
 	tree, _ := StartNewTree(3, 3)
 	testkv := GenTestKeyAndValue(3)
@@ -293,7 +315,6 @@ func TestInsertCaseTwo(t *testing.T) {
 
 }
 
-// 小fanout，乱序插入
 func TestInsertCaseShuffleTestkv(t *testing.T) {
 	tree, _ := StartNewTree(4, 4)
 	testkv := GenTestKeyAndValue(1)
@@ -317,7 +338,6 @@ func TestInsertCaseShuffleTestkv(t *testing.T) {
 	}
 }
 
-// 大量，乱序插入
 func TestInsertCaseShuffleTestkv2(t *testing.T) {
 	num := 100
 	for n := 1; n < num; n++ {
@@ -364,19 +384,43 @@ func TestInsertCaseShuffleTestkv2(t *testing.T) {
 			}
 		}
 	}
-	num = 100
-	for n := 1; n < num; n++ {
-		tree, _ := StartNewTree(num, num)
-		testkv := GenTestKeyAndValue(n)
+
+}
+
+func TestInsertCaseShuffleTestkv3(t *testing.T) {
+	num := 50
+	fanout := 50
+	for ft := 4; ft < fanout; ft++ {
+		for n := 1; n < num; n++ {
+			tree, _ := StartNewTree(ft, ft)
+			testkv := GenTestKeyAndValue(n)
+			ShuffleTestkv(testkv)
+			for i := 0; i < len(testkv); i++ {
+				key := testkv[i]
+				value := key + "_" + "v"
+				tree.Insert(key, value)
+				v, ok := tree.Find(key)
+				if !ok {
+					t.Fatalf("value:%s, should exsit", key)
+				}
+				if v != value {
+					t.Fatalf("value should be %s, but value:%s", key, v)
+				}
+			}
+		}
+	}
+}
+
+func TestInsertCaseShuffleTestkv4(t *testing.T) {
+	num := 5
+	for n := 0; n < num; n++ {
+		tree, _ := StartNewTree(20, 10)
+		testkv := GenTestRandomKeyAndValue(100000, 10)
 		ShuffleTestkv(testkv)
 		for i := 0; i < len(testkv); i++ {
-			// fmt.Printf("insert: %s ...\n", testkv[i])
-			tree.Insert(testkv[i], testkv[i])
-			// tree.Print()
-		}
-		for i := 0; i < len(testkv); i++ {
 			key := testkv[i]
-			value := testkv[i]
+			value := key + "_" + "v"
+			tree.Insert(key, value)
 			v, ok := tree.Find(key)
 			if !ok {
 				t.Fatalf("value:%s, should exsit", key)
@@ -388,7 +432,7 @@ func TestInsertCaseShuffleTestkv2(t *testing.T) {
 	}
 }
 
-func TestInsertCaseShuffleTestkv3(t *testing.T) {
+func TestInsertCaseShuffleTestkv5(t *testing.T) {
 	num := 100
 	for n := 4; n < num; n++ {
 		tree, _ := StartNewTree(n+10, n)
@@ -435,7 +479,6 @@ func TestInsertCaseShuffleTestkv3(t *testing.T) {
 	}
 }
 
-// 重复插入
 func TestInsertCaseDuplicated(t *testing.T) {
 	tree, _ := StartNewTree(4, 4)
 	testkv := GenTestKeyAndValue(3)
@@ -489,4 +532,48 @@ func TestInsertCaseDuplicated(t *testing.T) {
 		}
 	}
 
+}
+
+func TestInsertCaseForStat(t *testing.T) {
+	tree, _ := StartNewTree(20, 10)
+	testkv := GenTestRandomKeyAndValue(100000, 10)
+	ShuffleTestkv(testkv)
+	for i := 0; i < len(testkv); i++ {
+		key := testkv[i]
+		value := key + "_" + "v"
+		tree.Insert(key, value)
+	}
+	key := testkv[100]
+	value := testkv[100] + "_v"
+	tree.stat.ResetCount()
+	v, ok := tree.Find(key)
+	if !ok {
+		t.Fatalf("value:%s, should exsit", key)
+	}
+	if v != value {
+		t.Fatalf("value should be %s, but value:%s", key, v)
+	}
+	t.Logf("load node count: %d\n", tree.stat.Count)
+	key = testkv[1110]
+	value = testkv[1110] + "_v"
+	tree.stat.ResetCount()
+	v, ok = tree.Find(key)
+	if !ok {
+		t.Fatalf("value:%s, should exsit", key)
+	}
+	if v != value {
+		t.Fatalf("value should be %s, but value:%s", key, v)
+	}
+	t.Logf("load node count: %d\n", tree.stat.Count)
+	key = testkv[343]
+	value = testkv[343] + "_v"
+	tree.stat.ResetCount()
+	v, ok = tree.Find(key)
+	if !ok {
+		t.Fatalf("value:%s, should exsit", key)
+	}
+	if v != value {
+		t.Fatalf("value should be %s, but value:%s", key, v)
+	}
+	t.Logf("load node count: %d\n", tree.stat.Count)
 }
