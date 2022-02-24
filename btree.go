@@ -15,69 +15,9 @@ type BPlusTree struct {
 	// 非叶子节点key最多数量, key半满条件: internalMaxSize/2，指针的数量: internalMaxSize+1, 最后一个指针在node的lastOrNextNode
 	internalMaxSize int
 	// 0个或者2-n个子节点
-	root *Node
+	root *node
 	// 测试使用
-	*Stat
-}
-
-type Node struct {
-	// 是否是叶子节点
-	isLeaf bool
-	keys   []Key
-	// 非叶子节点是*Node，叶子节点是*Entry, 最后一个指针挪到了lastOrNextNode
-	// 所以len(keys)=len(pointers)
-	pointers []interface{}
-	parent   *Node
-	// 最后一个指针
-	lastOrNextNode *Node
-}
-
-// 查询统计（测试使用）
-type Stat struct {
-	// 查询遍历到的节点数
-	count int64
-	// 树的节点总数
-	nodeCount int64
-	// 数的高度
-	level int64
-}
-
-func (b *Stat) incrCount() {
-	b.count++
-}
-
-func (b *Stat) resetCount() {
-	b.count = 0
-}
-
-func (b *Stat) GetCount() int64 {
-	return b.count
-}
-
-func (b *Stat) GetLevel() int64 {
-	return b.level
-}
-
-func (b *Stat) GetNodeCount() int64 {
-	return b.nodeCount
-}
-
-type Key string
-
-func (k Key) compare(target Key) int {
-	return strings.Compare(k.toString(), target.toString())
-}
-
-func (k Key) toString() string {
-	return string(k)
-}
-
-type Entry struct {
-	value []byte
-}
-
-func (r *Entry) toValue() string {
-	return string(r.value)
+	*stat
 }
 
 func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
@@ -87,7 +27,7 @@ func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
 	return &BPlusTree{
 		leafMaxSize:     leafMaxSize,
 		internalMaxSize: internalMaxSize,
-		Stat:            new(Stat),
+		stat:            new(stat),
 	}, nil
 }
 
@@ -95,45 +35,45 @@ func StartDefaultNewTree() (*BPlusTree, error) {
 	return &BPlusTree{
 		leafMaxSize:     defaultLeafMaxSize,
 		internalMaxSize: defaultInternalMaxSize,
-		Stat:            new(Stat),
+		stat:            new(stat),
 	}, nil
 }
 
 // 功能接口
-func (b *BPlusTree) Insert(key, value string) {
-	pointer := &Entry{
+func (b *BPlusTree) Insert(ky, value string) {
+	pointer := &entry{
 		value: []byte(value),
 	}
-	b.insert(Key(key), pointer)
+	b.insert(key(ky), pointer)
 }
 
-func (b *BPlusTree) InsertByte(key string, value []byte) {
-	pointer := &Entry{
+func (b *BPlusTree) InsertByte(ky string, value []byte) {
+	pointer := &entry{
 		value: value,
 	}
-	b.insert(Key(key), pointer)
+	b.insert(key(ky), pointer)
 }
 
-func (b *BPlusTree) Delete(key string) (value string, err error) {
+func (b *BPlusTree) Delete(ky string) (value string, err error) {
 	panic("wait for implement")
 }
 
-func (b *BPlusTree) DeleteByte(key string) (value []byte, err error) {
+func (b *BPlusTree) DeleteByte(ky string) (value []byte, err error) {
 	panic("wait for implement")
 }
 
 func (b *BPlusTree) Find(targetKey string) (string, bool) {
 	b.resetCount()
-	leafNode := b.findLeafNode(Key(targetKey))
-	value, ok := leafNode.findRecord(Key(targetKey))
+	leafNode := b.findLeafNode(key(targetKey))
+	value, ok := leafNode.findRecord(key(targetKey))
 	b.incrCount()
 	return string(value), ok
 }
 
 func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
 	b.resetCount()
-	leafNode := b.findLeafNode(Key(targetKey))
-	value, ok := leafNode.findRecord(Key(targetKey))
+	leafNode := b.findLeafNode(key(targetKey))
+	value, ok := leafNode.findRecord(key(targetKey))
 	b.incrCount()
 	return value, ok
 }
@@ -153,24 +93,24 @@ func (b *BPlusTree) FindRange(start, end string) []string {
 func (b *BPlusTree) FindRangeByte(start, end string) [][]byte {
 	b.resetCount()
 	result := make([][]byte, 0)
-	startKey := Key(start)
-	endKey := Key(end)
+	startKey := key(start)
+	endKey := key(end)
 	if startKey.compare(endKey) == 1 {
 		return result
 	}
-	leafNode := b.findLeafNode(Key(start))
+	leafNode := b.findLeafNode(key(start))
 	currentNode := leafNode
 	for currentNode != nil {
 		b.incrCount()
-		for i, key := range currentNode.keys {
-			if key.compare(startKey) >= 0 && key.compare(endKey) <= 0 {
-				entry, ok := currentNode.pointers[i].(*Entry)
+		for i, ky := range currentNode.keys {
+			if ky.compare(startKey) >= 0 && ky.compare(endKey) <= 0 {
+				et, ok := currentNode.pointers[i].(*entry)
 				if !ok {
-					panic("should be *Entry")
+					panic("should be *entry")
 				}
-				result = append(result, entry.value)
+				result = append(result, et.value)
 			}
-			if key.compare(endKey) == 1 {
+			if ky.compare(endKey) == 1 {
 				return result
 			}
 		}
@@ -194,16 +134,16 @@ func (b *BPlusTree) CountNode() {
 			if nodeI == nil {
 				continue
 			}
-			node, ok := nodeI.(*Node)
+			nd, ok := nodeI.(*node)
 			if !ok {
 				panic("should node")
 			}
-			if node.isLeaf {
+			if nd.isLeaf {
 				continue
 			} else {
-				if len(node.pointers) != 0 && !node.isLeaf {
-					queue = append(queue, node.pointers...)
-					queue = append(queue, node.lastOrNextNode)
+				if len(nd.pointers) != 0 && !nd.isLeaf {
+					queue = append(queue, nd.pointers...)
+					queue = append(queue, nd.lastOrNextNode)
 				}
 			}
 		}
@@ -232,34 +172,34 @@ func (b *BPlusTree) Print() {
 				str = str + " --- "
 				continue
 			}
-			node, ok := nodeI.(*Node)
+			nd, ok := nodeI.(*node)
 			if !ok {
 				panic("should node")
 			}
-			if !node.isLeaf {
+			if !nd.isLeaf {
 				if str == "" {
-					str = fmt.Sprintf("%v", node.keys)
+					str = fmt.Sprintf("%v", nd.keys)
 				} else {
-					str = str + "," + fmt.Sprintf("%v", node.keys)
+					str = str + "," + fmt.Sprintf("%v", nd.keys)
 				}
 			} else {
 				str = str + "("
-				for j := 0; j < len(node.keys); j++ {
-					key := node.keys[j]
-					entry := node.pointers[j]
-					if p, ok := entry.(*Entry); ok {
+				for j := 0; j < len(nd.keys); j++ {
+					ky := nd.keys[j]
+					et := nd.pointers[j]
+					if p, ok := et.(*entry); ok {
 						if j == 0 {
-							str = str + fmt.Sprintf("%s|%s", key, string(p.value))
+							str = str + fmt.Sprintf("%s|%s", ky, string(p.value))
 						} else {
-							str = str + "," + fmt.Sprintf("%s|%s", key, string(p.value))
+							str = str + "," + fmt.Sprintf("%s|%s", ky, string(p.value))
 						}
 					}
 				}
 				str = str + ") && "
 			}
-			if len(node.pointers) != 0 && !node.isLeaf {
-				queue = append(queue, node.pointers...)
-				queue = append(queue, node.lastOrNextNode)
+			if len(nd.pointers) != 0 && !nd.isLeaf {
+				queue = append(queue, nd.pointers...)
+				queue = append(queue, nd.lastOrNextNode)
 				queue = append(queue, nil)
 			}
 		}
@@ -276,29 +216,29 @@ func (b *BPlusTree) Print() {
 }
 
 // 内部方法
-func (b *BPlusTree) makeEmptyLeafNode() *Node {
-	return &Node{
+func (b *BPlusTree) makeEmptyLeafNode() *node {
+	return &node{
 		isLeaf:   true,
-		keys:     make([]Key, 0, b.leafMaxSize),
+		keys:     make([]key, 0, b.leafMaxSize),
 		pointers: make([]interface{}, 0, b.internalMaxSize),
 	}
 }
 
-func (b *BPlusTree) makeEmptyInternalNode() *Node {
-	return &Node{
+func (b *BPlusTree) makeEmptyInternalNode() *node {
+	return &node{
 		isLeaf:   false,
-		keys:     make([]Key, 0, b.leafMaxSize),
+		keys:     make([]key, 0, b.leafMaxSize),
 		pointers: make([]interface{}, 0, b.internalMaxSize),
 	}
 }
 
-func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
-	var leafNode *Node
+func (b *BPlusTree) insert(targetKey key, et *entry) {
+	var leafNode *node
 	if b.root == nil {
 		leafNode = b.makeEmptyLeafNode()
 		b.root = leafNode
 		leafNode.keys = append(leafNode.keys, targetKey)
-		leafNode.pointers = append(leafNode.pointers, entry)
+		leafNode.pointers = append(leafNode.pointers, et)
 		return
 	} else {
 		leafNode = b.findLeafNode(targetKey)
@@ -306,21 +246,21 @@ func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
 	if leafNode == nil {
 		panic("should find leaf node")
 	}
-	if leafNode.updateRecord(targetKey, entry) {
+	if leafNode.updateRecord(targetKey, et) {
 		return
 	}
 	if len(leafNode.keys) < b.leafMaxSize {
-		b.insertIntoLeaf(leafNode, targetKey, entry)
+		b.insertIntoLeaf(leafNode, targetKey, et)
 	} else {
 		// split
 		siblingNode := b.makeEmptyLeafNode()
 		tempNode := b.makeEmptyLeafNode()
 		tempNode.keys = append(tempNode.keys, leafNode.keys...)
 		tempNode.pointers = append(tempNode.pointers, leafNode.pointers...)
-		b.insertIntoLeaf(tempNode, targetKey, entry)
+		b.insertIntoLeaf(tempNode, targetKey, et)
 		siblingNode.lastOrNextNode = leafNode.lastOrNextNode
 		leafNode.lastOrNextNode = siblingNode
-		leafNode.keys = make([]Key, 0)
+		leafNode.keys = make([]key, 0)
 		leafNode.pointers = make([]interface{}, 0)
 		leafNode.keys = append(leafNode.keys, tempNode.keys[0:b.leafMaxSize/2+1]...)
 		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:b.leafMaxSize/2+1]...)
@@ -332,33 +272,33 @@ func (b *BPlusTree) insert(targetKey Key, entry *Entry) {
 	}
 }
 
-func (b *BPlusTree) findFirstLeafNode() *Node {
+func (b *BPlusTree) findFirstLeafNode() *node {
 	currentNode := b.root
 	for currentNode != nil {
 		if currentNode.isLeaf {
 			break
 		}
 		pointer := currentNode.pointers[0]
-		node, ok := pointer.(*Node)
+		nd, ok := pointer.(*node)
 		if !ok {
 			panic("should be *node")
 		}
-		currentNode = node
+		currentNode = nd
 	}
 	return currentNode
 }
 
-func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
-	tKey := Key(targetKey)
+func (b *BPlusTree) findLeafNode(targetKey key) *node {
+	tKey := key(targetKey)
 	currentNode := b.root
 	for !currentNode.isLeaf {
 		b.incrCount()
 		number := -1
-		for i, key := range currentNode.keys {
-			if tKey.compare(key) == 0 {
+		for i, ky := range currentNode.keys {
+			if tKey.compare(ky) == 0 {
 				number = i + 1
 				break
-			} else if tKey.compare(key) < 1 {
+			} else if tKey.compare(ky) < 1 {
 				number = i
 				break
 			}
@@ -367,7 +307,7 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 		if number == -1 || number == len(currentNode.keys) {
 			currentNode = currentNode.lastOrNextNode
 		} else {
-			currentNode, ok = currentNode.pointers[number].(*Node)
+			currentNode, ok = currentNode.pointers[number].(*node)
 			if !ok {
 				panic("should be *node")
 			}
@@ -378,10 +318,10 @@ func (b *BPlusTree) findLeafNode(targetKey Key) *Node {
 	}
 	return currentNode
 }
-func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Entry) {
+func (b *BPlusTree) insertIntoLeaf(leafNode *node, targetKey key, value *entry) {
 	number := -1
-	for i, key := range leafNode.keys {
-		if key.compare(targetKey) == 1 {
+	for i, ky := range leafNode.keys {
+		if ky.compare(targetKey) == 1 {
 			number = i
 			break
 		}
@@ -391,10 +331,10 @@ func (b *BPlusTree) insertIntoLeaf(leafNode *Node, targetKey Key, value *Entry) 
 		leafNode.pointers = append(leafNode.pointers, value)
 		return
 	}
-	leafNode.keys = append(leafNode.keys[:number], append([]Key{targetKey}, leafNode.keys[number:]...)...)
+	leafNode.keys = append(leafNode.keys[:number], append([]key{targetKey}, leafNode.keys[number:]...)...)
 	leafNode.pointers = append(leafNode.pointers[:number], append([]interface{}{value}, leafNode.pointers[number:]...)...)
 }
-func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
+func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 	if oldNode.parent == nil {
 		newRoot := b.makeEmptyInternalNode()
 		newRoot.keys = append(newRoot.keys, childKey)
@@ -418,7 +358,7 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 		tempKeys := tempNode.keys
 		tempPointers := tempNode.pointers
 		tempPointers = append(tempPointers, tempNode.lastOrNextNode)
-		parentNode.keys = make([]Key, 0)
+		parentNode.keys = make([]key, 0)
 		parentNode.pointers = make([]interface{}, 0)
 		siblingParentNode := b.makeEmptyInternalNode()
 		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2]...)
@@ -432,15 +372,15 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 			if childPointer == oldNode {
 				oldNode.parent = parentNode
 			}
-			p, ok := childPointer.(*Node)
+			p, ok := childPointer.(*node)
 			if !ok {
 				panic("should be *node")
 			}
 			p.parent = parentNode
 		}
-		lst, ok := tempPointers[b.internalMaxSize/2].(*Node)
+		lst, ok := tempPointers[b.internalMaxSize/2].(*node)
 		if !ok {
-			panic("should be *Node")
+			panic("should be *node")
 		}
 		parentNode.lastOrNextNode = lst
 		parentNode.lastOrNextNode.parent = parentNode
@@ -462,15 +402,15 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 			if childPointer == oldNode {
 				oldNode.parent = siblingParentNode
 			}
-			p, ok := childPointer.(*Node)
+			p, ok := childPointer.(*node)
 			if !ok {
 				panic("should be *node")
 			}
 			p.parent = siblingParentNode
 		}
-		lst, ok = tempPointers[b.internalMaxSize+1].(*Node)
+		lst, ok = tempPointers[b.internalMaxSize+1].(*node)
 		if !ok {
-			panic("should be *Node")
+			panic("should be *node")
 		}
 		siblingParentNode.lastOrNextNode = lst
 		siblingParentNode.lastOrNextNode.parent = siblingParentNode
@@ -487,74 +427,5 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *Node, childKey Key) {
 
 }
 
-func (b *BPlusTree) delete(key Key, pointer interface{})                  {}
-func (b *BPlusTree) deleteEntry(node *Node, key Key, pointer interface{}) {}
-
-func (n *Node) findRecord(targetKey Key) ([]byte, bool) {
-	if !n.isLeaf {
-		panic("should be leaf node")
-	}
-	if len(n.keys) == 0 {
-		return []byte{}, false
-	}
-	// 可使用二分查找，待优化
-	for i, key := range n.keys {
-		if key.compare(targetKey) == 0 {
-			entry := n.pointers[i]
-			if value, ok := entry.(*Entry); ok {
-				return value.value, true
-			}
-			panic("should be entry")
-		}
-	}
-	return []byte{}, false
-}
-
-func (n *Node) updateRecord(targetKey Key, entry *Entry) bool {
-	// 如果值已经存在则更新
-	for i, k := range n.keys {
-		if targetKey.compare(k) == 0 {
-			r, ok := n.pointers[i].(*Entry)
-			if !ok {
-				panic("should be *entry")
-			}
-			r.value = entry.value
-			n.pointers[i] = r
-			return true
-		}
-	}
-	return false
-}
-
-func (n *Node) insertNextAfterPrev(childKey Key, prev, next *Node) {
-	number := -1
-	for i, p := range n.pointers {
-		if p == prev {
-			number = i
-			break
-		}
-	}
-	if number == -1 {
-		// prev 在lastOrNextNode
-		n.keys = append(n.keys, childKey)
-		n.pointers = append(n.pointers, prev)
-		n.lastOrNextNode = next
-	} else {
-		n.keys = append(n.keys[:number], append([]Key{childKey}, n.keys[number:]...)...)
-		n.pointers = append(n.pointers[:number+1], append([]interface{}{next}, n.pointers[number+1:]...)...)
-	}
-
-}
-
-func (n *Node) copy() *Node {
-	node := &Node{
-		isLeaf:         n.isLeaf,
-		keys:           make([]Key, 0),
-		pointers:       make([]interface{}, 0),
-		parent:         n.parent,
-		lastOrNextNode: n.lastOrNextNode,
-	}
-	node.keys = append(node.keys, n.keys...)
-	node.pointers = append(node.pointers, n.pointers...)
-	return node
-}
+func (b *BPlusTree) delete(ky key, pointer interface{})                {}
+func (b *BPlusTree) deleteEntry(nd *node, ky key, pointer interface{}) {}
