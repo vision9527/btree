@@ -1,10 +1,15 @@
 package btree
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 )
+
+func toString(v interface{}) string {
+	return fmt.Sprintf("%v", v)
+}
 
 func makeTestLeafNode(keys []string, values []string) *node {
 	n := &node{
@@ -16,7 +21,7 @@ func makeTestLeafNode(keys []string, values []string) *node {
 	}
 	for _, v := range values {
 		et := &entry{
-			value: []byte(v),
+			value: v,
 		}
 		n.pointers = append(n.pointers, et)
 	}
@@ -84,29 +89,29 @@ func TestBPlusTreeFind_rootDontHaveChild(t *testing.T) {
 	}
 	tree.root = root
 	p1 := &entry{
-		value: []byte("test_value1"),
+		value: "test_value1",
 	}
 	root.pointers = append(root.pointers, p1)
 	p2 := &entry{
-		value: []byte("test_value2"),
+		value: "test_value2",
 	}
 	root.pointers = append(root.pointers, p2)
 	p3 := &entry{
-		value: []byte("test_value3"),
+		value: "test_value3",
 	}
 	root.pointers = append(root.pointers, p3)
 	v, ok := tree.Find("test_key1")
 	if !ok {
 		t.Fatalf("not find test_key1 value")
 	}
-	if v != "test_value1" {
+	if toString(v) != "test_value1" {
 		t.Fatalf("find test_key1 value, but not correct")
 	}
 	v, ok = tree.Find("test_key2")
 	if !ok {
 		t.Fatalf("not find test_key2 value")
 	}
-	if v != "test_value2" {
+	if toString(v) != "test_value2" {
 		t.Fatalf("find test_key2 value, but not correct")
 	}
 }
@@ -137,14 +142,14 @@ func TestBPlusTreeFind_rootHaveChild(t *testing.T) {
 	if !ok {
 		t.Fatalf("not find Mozart value")
 	}
-	if v != "Mozart_value" {
+	if toString(v) != "Mozart_value" {
 		t.Fatalf("find Mozart_value, but not correct")
 	}
 	v, ok = tree.Find("Wu")
 	if !ok {
 		t.Fatalf("not find Wu value")
 	}
-	if v != "Wu_value" {
+	if toString(v) != "Wu_value" {
 		t.Fatalf("find Wu_value, but not correct")
 	}
 
@@ -156,7 +161,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
 	targetKey := key("key3")
 	et := &entry{
-		value: []byte("key3_value"),
+		value: "key3_value",
 	}
 	tree.insertIntoLeaf(leafNode, targetKey, et)
 	if targetKey.compare(leafNode.keys[2]) != 0 {
@@ -166,19 +171,19 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	if !ok {
 		t.Fatalf("should be et")
 	}
-	if string(r.value) != "key3_value" {
+	if r.toValue() != "key3_value" {
 		t.Fatalf("should be key3_value")
 	}
 	t.Logf("keys: %v", leafNode.keys)
 	values := make([]string, 0)
 	for _, i := range leafNode.pointers {
 		r, _ := i.(*entry)
-		values = append(values, string(r.value))
+		values = append(values, r.toValue())
 	}
 	t.Logf("et: %v", values)
 	targetKey = key("key0")
 	et = &entry{
-		value: []byte("key0_value"),
+		value: "key0_value",
 	}
 	tree.insertIntoLeaf(leafNode, targetKey, et)
 	if targetKey.compare(leafNode.keys[0]) != 0 {
@@ -187,7 +192,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	t.Logf("keys: %v", leafNode.keys)
 	targetKey = key("key6")
 	et = &entry{
-		value: []byte("key6_value"),
+		value: "key6_value",
 	}
 	tree.insertIntoLeaf(leafNode, targetKey, et)
 	if targetKey.compare(leafNode.keys[6]) != 0 {
@@ -197,7 +202,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	if !ok {
 		t.Fatalf("should be et")
 	}
-	if string(r.value) != "key6_value" {
+	if r.toValue() != "key6_value" {
 		t.Fatalf("should be key6_value")
 	}
 	t.Logf("keys: %v", leafNode.keys)
@@ -234,30 +239,30 @@ func TestInsertCaseOne(t *testing.T) {
 	tree.Insert("n", "n")
 	tree.Print()
 	v, _ := tree.Find("a")
-	if v != "a" {
-		t.Fatalf("value should be a, but value:%s", v)
+	if toString(v) != "a" {
+		t.Fatalf("value should be a, but value:%v", v)
 	}
 	v, _ = tree.Find("g")
-	if v != "g" {
-		t.Fatalf("value should be g, but value:%s", v)
+	if toString(v) != "g" {
+		t.Fatalf("value should be g, but value:%v", v)
 	}
 	v, _ = tree.Find("i")
-	if v != "i" {
-		t.Fatalf("value should be i, but value:%s", v)
+	if toString(v) != "i" {
+		t.Fatalf("value should be i, but value:%v", v)
 	}
 	v, _ = tree.Find("m")
-	if v != "m" {
-		t.Fatalf("value should be m, but value:%s", v)
+	if toString(v) != "m" {
+		t.Fatalf("value should be m, but value:%v", v)
 	}
 	v, _ = tree.Find("n")
-	if v != "n" {
-		t.Fatalf("value should be n, but value:%s", v)
+	if toString(v) != "n" {
+		t.Fatalf("value should be n, but value:%v", v)
 	}
 	v, ok := tree.Find("xxxxxx")
 	if ok {
 		t.Fatalf("value should not exsit")
 	}
-	if v != "" {
+	if v != nil {
 		t.Fatalf("value should be empty")
 	}
 
@@ -277,8 +282,8 @@ func TestInsertCaseTwo(t *testing.T) {
 		if !ok {
 			t.Fatalf("value should exsit")
 		}
-		if v != value {
-			t.Fatalf("value should be %s, but value:%s", ky, v)
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%v", ky, v)
 		}
 	}
 
@@ -290,7 +295,7 @@ func TestInsertCaseShuffleTestkv1(t *testing.T) {
 	ShuffleTestkv(testkv)
 	for i := 0; i < len(testkv); i++ {
 		ky, value := testkv[i], testkv[i]
-		tree.InsertByte(ky, []byte(value))
+		tree.Insert(ky, value)
 	}
 
 	for i := 0; i < len(testkv); i++ {
@@ -300,8 +305,8 @@ func TestInsertCaseShuffleTestkv1(t *testing.T) {
 		if !ok {
 			t.Fatalf("value:%s, should exsit", ky)
 		}
-		if v != value {
-			t.Fatalf("value should be %s, but value:%s", ky, v)
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%v", ky, v)
 		}
 	}
 	tree.CountNode()
@@ -312,8 +317,8 @@ func TestInsertCaseShuffleTestkv1(t *testing.T) {
 	if !ok {
 		t.Fatalf("value:%s, should exsit", ky)
 	}
-	if v != ky {
-		t.Fatalf("value should be %s, but value:%s", ky, v)
+	if toString(v) != ky {
+		t.Fatalf("value should be %s, but value:%v", ky, v)
 	}
 	t.Logf("load node count: %d", tree.GetCount())
 }
@@ -336,8 +341,8 @@ func TestInsertCaseShuffleTestkv2(t *testing.T) {
 			if !ok {
 				t.Fatalf("value:%s, should exsit", ky)
 			}
-			if v != value {
-				t.Fatalf("value should be %s, but value:%s", ky, v)
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
 			}
 		}
 	}
@@ -359,8 +364,8 @@ func TestInsertCaseShuffleTestkv2(t *testing.T) {
 			if !ok {
 				t.Fatalf("value:%s, should exsit", ky)
 			}
-			if v != value {
-				t.Fatalf("value should be %s, but value:%s", ky, v)
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
 			}
 		}
 	}
@@ -378,13 +383,13 @@ func TestInsertCaseShuffleTestkv3(t *testing.T) {
 			for i := 0; i < len(testkv); i++ {
 				ky := testkv[i]
 				value := ky + "_" + "v"
-				tree.InsertByte(ky, []byte(value))
+				tree.Insert(ky, value)
 				v, ok := tree.Find(ky)
 				if !ok {
 					t.Fatalf("value:%s, should exsit", ky)
 				}
-				if v != value {
-					t.Fatalf("value should be %s, but value:%s", ky, v)
+				if toString(v) != value {
+					t.Fatalf("value should be %s, but value:%v", ky, v)
 				}
 			}
 		}
@@ -400,13 +405,13 @@ func TestInsertCaseShuffleTestkv4(t *testing.T) {
 		for i := 0; i < len(testkv); i++ {
 			ky := testkv[i]
 			value := ky + "_" + "v"
-			tree.InsertByte(ky, []byte(value))
+			tree.Insert(ky, value)
 			v, ok := tree.Find(ky)
 			if !ok {
 				t.Fatalf("value:%s, should exsit", ky)
 			}
-			if v != value {
-				t.Fatalf("value should be %s, but value:%s", ky, v)
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
 			}
 		}
 	}
@@ -430,8 +435,8 @@ func TestInsertCaseShuffleTestkv5(t *testing.T) {
 			if !ok {
 				t.Fatalf("value:%s, should exsit", ky)
 			}
-			if v != value {
-				t.Fatalf("value should be %s, but value:%s", ky, v)
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
 			}
 		}
 	}
@@ -452,8 +457,8 @@ func TestInsertCaseShuffleTestkv5(t *testing.T) {
 			if !ok {
 				t.Fatalf("value:%s, should exsit", ky)
 			}
-			if v != value {
-				t.Fatalf("value should be %s, but value:%s", ky, v)
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
 			}
 		}
 	}
@@ -475,8 +480,8 @@ func TestInsertCaseDuplicated(t *testing.T) {
 		if !ok {
 			t.Fatalf("value should exsit")
 		}
-		if v != value {
-			t.Fatalf("value should be %s, but value:%s", ky, v)
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%v", ky, v)
 		}
 	}
 	for i := 0; i < len(testkv); i++ {
@@ -490,8 +495,8 @@ func TestInsertCaseDuplicated(t *testing.T) {
 		if !ok {
 			t.Fatalf("value should exsit")
 		}
-		if v != value {
-			t.Fatalf("value should be %s, but value:%s", ky, v)
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%v", ky, v)
 		}
 	}
 	for i := 0; i < len(testkv); i++ {
@@ -507,8 +512,8 @@ func TestInsertCaseDuplicated(t *testing.T) {
 		if !ok {
 			t.Fatalf("value should exsit")
 		}
-		if v != value {
-			t.Fatalf("value should be %s, but value:%s", ky, v)
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%V", ky, v)
 		}
 	}
 
@@ -603,24 +608,24 @@ func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	result := tree.FindRange(start, end)
 	t.Logf("start=%s, end=%s \n", start, end)
 	t.Logf("length:%d, result=%s \n", len(result), result)
-	if start != result[0] {
+	if start != toString(result[0]) {
 		t.Fatalf("result first should be: %s", start)
 	}
-	if end != result[len(result)-1] {
+	if end != toString(result[len(result)-1]) {
 		t.Fatalf("result last should be: %s", end)
 	}
 
-	if originTestKv[startIndex] != result[0] {
+	if originTestKv[startIndex] != toString(result[0]) {
 		t.Fatalf("result first should be: %s", originTestKv[startIndex])
 	}
-	if originTestKv[endIndex] != result[len(result)-1] {
+	if originTestKv[endIndex] != toString(result[len(result)-1]) {
 		t.Fatalf("result last should be: %s", testkv[endIndex])
 	}
 	if len(result) != (endIndex - startIndex + 1) {
 		t.Fatalf("result length should be: %s", originTestKv[endIndex])
 	}
 	for i := startIndex; i <= endIndex; i++ {
-		if originTestKv[i] != result[i-startIndex] {
+		if originTestKv[i] != toString(result[i-startIndex]) {
 			t.Fatalf("result index:%d should be: %s", i-startIndex, originTestKv[i])
 		}
 	}

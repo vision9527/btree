@@ -40,37 +40,18 @@ func StartDefaultNewTree() (*BPlusTree, error) {
 }
 
 // 功能接口
-func (b *BPlusTree) Insert(ky, value string) {
-	pointer := &entry{
-		value: []byte(value),
-	}
-	b.insert(key(ky), pointer)
-}
-
-func (b *BPlusTree) InsertByte(ky string, value []byte) {
+func (b *BPlusTree) Insert(ky string, value interface{}) {
 	pointer := &entry{
 		value: value,
 	}
 	b.insert(key(ky), pointer)
 }
 
-func (b *BPlusTree) Delete(ky string) (value string, err error) {
+func (b *BPlusTree) Delete(ky string) (value interface{}, err error) {
 	panic("wait for implement")
 }
 
-func (b *BPlusTree) DeleteByte(ky string) (value []byte, err error) {
-	panic("wait for implement")
-}
-
-func (b *BPlusTree) Find(targetKey string) (string, bool) {
-	b.resetCount()
-	leafNode := b.findLeafNode(key(targetKey))
-	value, ok := leafNode.findRecord(key(targetKey))
-	b.incrCount()
-	return string(value), ok
-}
-
-func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
+func (b *BPlusTree) Find(targetKey string) (interface{}, bool) {
 	b.resetCount()
 	leafNode := b.findLeafNode(key(targetKey))
 	value, ok := leafNode.findRecord(key(targetKey))
@@ -78,21 +59,9 @@ func (b *BPlusTree) FindByte(targetKey string) ([]byte, bool) {
 	return value, ok
 }
 
-func (b *BPlusTree) FindRange(start, end string) []string {
-	result := make([]string, 0)
-	byteResult := b.FindRangeByte(start, end)
-	if len(byteResult) == 0 {
-		return result
-	}
-	for _, i := range byteResult {
-		result = append(result, string(i))
-	}
-	return result
-}
-
-func (b *BPlusTree) FindRangeByte(start, end string) [][]byte {
+func (b *BPlusTree) FindRange(start, end string) []interface{} {
 	b.resetCount()
-	result := make([][]byte, 0)
+	result := make([]interface{}, 0)
 	startKey := key(start)
 	endKey := key(end)
 	if startKey.compare(endKey) == 1 {
@@ -189,9 +158,9 @@ func (b *BPlusTree) Print() {
 					et := nd.pointers[j]
 					if p, ok := et.(*entry); ok {
 						if j == 0 {
-							str = str + fmt.Sprintf("%s|%s", ky, string(p.value))
+							str = str + fmt.Sprintf("%s|%s", ky, p.toValue())
 						} else {
-							str = str + "," + fmt.Sprintf("%s|%s", ky, string(p.value))
+							str = str + "," + fmt.Sprintf("%s|%s", ky, p.toValue())
 						}
 					}
 				}

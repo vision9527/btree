@@ -1,5 +1,7 @@
 package btree
 
+import "fmt"
+
 type node struct {
 	// 是否是叶子节点
 	isLeaf bool
@@ -13,19 +15,19 @@ type node struct {
 }
 
 type entry struct {
-	value []byte
+	value interface{}
 }
 
 func (r *entry) toValue() string {
-	return string(r.value)
+	return fmt.Sprintf("%v", r.value)
 }
 
-func (n *node) findRecord(targetKey key) ([]byte, bool) {
+func (n *node) findRecord(targetKey key) (interface{}, bool) {
 	if !n.isLeaf {
 		panic("should be leaf nd")
 	}
 	if len(n.keys) == 0 {
-		return []byte{}, false
+		return nil, false
 	}
 	// 可使用二分查找，待优化
 	for i, ky := range n.keys {
@@ -37,7 +39,7 @@ func (n *node) findRecord(targetKey key) ([]byte, bool) {
 			panic("should be entry")
 		}
 	}
-	return []byte{}, false
+	return nil, false
 }
 
 func (n *node) updateRecord(targetKey key, et *entry) bool {
