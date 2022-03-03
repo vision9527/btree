@@ -127,6 +127,7 @@ func (b *BPlusTree) CountNode() {
 
 func (b *BPlusTree) Print() {
 	fmt.Println("----------------------------------------------------------------------------------------------------start print tree")
+	fmt.Printf("InternalMaxSize:%d LeafMaxSize: %d\n", b.internalMaxSize, b.leafMaxSize)
 	queue := make([]interface{}, 0)
 	queue = append(queue, b.root)
 	level := 0
@@ -149,18 +150,23 @@ func (b *BPlusTree) Print() {
 				if str == "" {
 					str = fmt.Sprintf("%v", nd.keys)
 				} else {
-					str = str + "," + fmt.Sprintf("%v", nd.keys)
+					if strings.HasSuffix(str, " --- ") {
+						str = str + fmt.Sprintf("%v", nd.keys)
+					} else {
+						str = str + "," + fmt.Sprintf("%v", nd.keys)
+					}
+
 				}
 			} else {
 				str = str + "("
 				for j := 0; j < len(nd.keys); j++ {
 					ky := nd.keys[j]
 					et := nd.pointers[j]
-					if p, ok := et.(*entry); ok {
+					if _, ok := et.(*entry); ok {
 						if j == 0 {
-							str = str + fmt.Sprintf("%s|%s", ky, p.toValue())
+							str = str + ky.toString()
 						} else {
-							str = str + "," + fmt.Sprintf("%s|%s", ky, p.toValue())
+							str = str + "," + ky.toString()
 						}
 					}
 				}
@@ -174,7 +180,7 @@ func (b *BPlusTree) Print() {
 		}
 		str = strings.Trim(str, " &&")
 		str = strings.Trim(str, "---")
-		fmt.Printf("level %d: %s\n", level, str)
+		fmt.Printf("Level %d: %s\n", level, str)
 		if len(queue) > size {
 			queue = queue[size:]
 		} else {
