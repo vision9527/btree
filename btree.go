@@ -60,9 +60,16 @@ func (b *BPlusTree) Delete(ky string) {
 func (b *BPlusTree) Find(targetKey string) (interface{}, bool) {
 	b.resetCount()
 	leafNode := b.findLeafNode(key(targetKey))
-	value, ok := leafNode.findRecord(key(targetKey))
+	et, ok := leafNode.findRecord(key(targetKey))
 	b.incrCount()
-	return value, ok
+	if !ok {
+		return nil, false
+	}
+
+	if value, ok := et.(*entry); ok {
+		return value.value, true
+	}
+	return nil, false
 }
 
 func (b *BPlusTree) FindRange(start, end string) []interface{} {
@@ -412,15 +419,15 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 
 func (b *BPlusTree) delete(ky key) {
 	leafNode := b.findLeafNode(ky)
-	_, ok := leafNode.findRecord(ky)
+	ent, ok := leafNode.findRecord(ky)
 	if !ok {
 		return
 	}
-	b.deleteNode(leafNode, ky)
+	b.deleteNode(leafNode, ky, ent)
 
 }
-func (b *BPlusTree) deleteNode(nd *node, ky key) {
-	nd.delete(ky)
+func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
+	nd.delete(ky, p)
 	if nd.parent == nil && len(nd.keys) == 0 {
 		b.root = nd.lastOrNextNode
 		return
@@ -449,8 +456,7 @@ func (b *BPlusTree) deleteNode(nd *node, ky key) {
 				sibling.pointers = append(sibling.pointers, nd.pointers...)
 				sibling.lastOrNextNode = nd.lastOrNextNode
 			}
-			b.deleteNode(nd.parent, ky)
-			return
+			b.deleteNode(nd.parent, ky, nd)
 		} else {
 			// Redistribution
 			if isPrev {

@@ -1,7 +1,6 @@
 package btree
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -12,12 +11,16 @@ func TestNode_findRecord(t *testing.T) {
 	if !ok {
 		t.Fatalf("should find Singh_value")
 	}
-	if fmt.Sprintf("%v", v) != "Singh_value" {
+	value, ok := v.(*entry)
+	if !ok {
+		t.Fatalf("shuold be *entry")
+	}
+	if value.toValue() != "Singh_value" {
 		t.Fatalf("find Singh_value, but not correct")
 	}
 	_, ok = leafNode.findRecord(key("trump"))
 	if ok {
-		t.Fatalf("should not find trump value")
+		t.Fatalf("shuold be *entry")
 	}
 }
 

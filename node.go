@@ -24,13 +24,13 @@ func (r *entry) toValue() string {
 }
 
 // 删除key的同时删除pointer
-func (n *node) delete(targetKey key) {
+func (n *node) delete(targetKey key, p interface{}) {
 	if len(n.keys) == 0 {
 		return
 	}
-	// 需要删除key的索引,
-	// 删除相应的pointer索引：叶子节点index，内部节点index+1（内部节点只有在合并的时候才会有删除的情况）
-	var index int
+	// 需要删除key的索引
+	// 删除相应的pointer索引：叶子节点index，内部节点index+1
+	index := -1
 	for i, ky := range n.keys {
 		if ky.compare(targetKey) == 0 {
 			nd := n.pointers[i]
@@ -49,6 +49,9 @@ func (n *node) delete(targetKey key) {
 			}
 
 		}
+	}
+	if index == -1 {
+		panic("index should not be -1")
 	}
 	keys := n.keys[0:index]
 	if index+1 != len(n.keys) {
@@ -90,8 +93,8 @@ func (n *node) findRecord(targetKey key) (interface{}, bool) {
 	for i, ky := range n.keys {
 		if ky.compare(targetKey) == 0 {
 			et := n.pointers[i]
-			if value, ok := et.(*entry); ok {
-				return value.value, true
+			if _, ok := et.(*entry); ok {
+				return et, true
 			}
 			panic("should be entry")
 		}
