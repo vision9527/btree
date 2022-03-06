@@ -28,57 +28,35 @@ func (n *node) delete(targetKey key, p interface{}) {
 	if len(n.keys) == 0 {
 		return
 	}
-	// 需要删除key的索引
-	// 删除相应的pointer索引：叶子节点index，内部节点index+1
+	fmt.Println("key: ", targetKey)
 	index := -1
 	for i, ky := range n.keys {
 		if ky.compare(targetKey) == 0 {
-			nd := n.pointers[i]
-			if n.isLeaf {
-				if _, ok := nd.(*entry); ok {
-					index = i
-					break
-				}
-				panic("should be entry")
-			} else {
-				if _, ok := nd.(*node); ok {
-					index = i
-					break
-				}
-				panic("should be node")
-			}
-
+			index = i
+			break
 		}
 	}
-	if index == -1 {
-		panic("index should not be -1")
+	tempKeys := n.keys[0:index]
+	if index < len(n.keys)-1 {
+		tempKeys = append(tempKeys, n.keys[index+1:]...)
 	}
-	keys := n.keys[0:index]
-	if index+1 != len(n.keys) {
-		keys = append(keys, n.keys[index+1:]...)
-	}
-	n.keys = keys
-	if n.isLeaf {
-		pointers := n.pointers[0:index]
-		if index+1 != len(n.pointers) {
-			pointers = append(pointers, n.pointers[index+1:]...)
+	n.keys = tempKeys
+	index = -1
+	for i, pt := range n.pointers {
+		if pt == p {
+			index = i
+			break
 		}
-		n.pointers = pointers
+	}
+	if index != -1 {
+		tempPointers := n.pointers[0:index]
+		if index < len(n.pointers)-1 {
+			tempPointers = append(tempPointers, n.pointers[index+1:]...)
+		}
+		n.pointers = tempPointers
 	} else {
-		if index+1 == len(n.keys) {
-			n.lastOrNextNode = n.pointers[index].(*node)
-			n.pointers = n.pointers[0:index]
-		} else if index+1 == len(n.keys)-1 {
-			pointers := n.pointers[0 : index+1]
-			if index+1 != len(n.keys) {
-				n.pointers = pointers
-			}
-			n.pointers = pointers
-		} else {
-			pointers := n.pointers[0 : index+1]
-			pointers = append(pointers, n.pointers[index+2:]...)
-			n.pointers = pointers
-		}
+		n.lastOrNextNode = n.pointers[len(n.pointers)-1].(*node)
+		n.pointers = n.pointers[0 : len(n.pointers)-1]
 	}
 }
 

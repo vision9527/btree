@@ -632,39 +632,74 @@ func TestBPlusTree_FindRangeShuffle(t *testing.T) {
 	t.Logf("load node count:%d", tree.GetCount())
 }
 
-func TestBPlusTree_Delete(t *testing.T) {
+func TestBPlusTree_DeleteOne(t *testing.T) {
+	tree, _ := StartNewTree(3, 3)
+	tree.Insert("a", "a")
+	tree.Print()
+	tree.Insert("b", "b")
+	tree.Print()
+	tree.Insert("c", "c")
+	tree.Print()
+	tree.Insert("d", "d")
+	tree.Print()
+	tree.Insert("e", "e")
+	tree.Print()
+	tree.Insert("f", "f")
+	tree.Print()
+	tree.Insert("g", "g")
+	tree.Print()
+	tree.Insert("h", "h")
+	tree.Print()
+	tree.Insert("i", "i")
+	tree.Print()
+	tree.Insert("j", "j")
+	tree.Print()
+	tree.Insert("k", "k")
+	tree.Print()
+	tree.Insert("l", "l")
+	tree.Print()
+	tree.Insert("m", "m")
+	tree.Print()
+	tree.Insert("n", "n")
+	tree.Print()
+	a, ok := tree.Delete("a")
+	if !ok {
+		t.Fatal("shoul have a")
+	}
+	fmt.Println(a.(string))
+	tree.Print()
+	b, ok := tree.Delete("b")
+	if !ok {
+		t.Fatal("shoul have b")
+	}
+	fmt.Println(b.(string))
+	g, ok := tree.Delete("g")
+	if !ok {
+		t.Fatal("shoul have g")
+	}
+	fmt.Println(g.(string))
+}
+
+func TestBPlusTree_DeleteTwo(t *testing.T) {
 	t.Skip()
-	// tree, _ := StartNewTree(3, 3)
-	// tree.Insert("a", "a")
-	// tree.Print()
-	// tree.Insert("b", "b")
-	// tree.Print()
-	// tree.Insert("c", "c")
-	// tree.Print()
-	// tree.Insert("d", "d")
-	// tree.Print()
-	// tree.Insert("e", "e")
-	// tree.Print()
-	// tree.Insert("f", "f")
-	// tree.Print()
-	// tree.Insert("g", "g")
-	// tree.Print()
-	// tree.Insert("h", "h")
-	// tree.Print()
-	// tree.Insert("i", "i")
-	// tree.Print()
-	// tree.Insert("j", "j")
-	// tree.Print()
-	// tree.Insert("k", "k")
-	// tree.Print()
-	// tree.Insert("l", "l")
-	// tree.Print()
-	// tree.Insert("m", "m")
-	// tree.Print()
-	// tree.Insert("n", "n")
-	// tree.Print()
-	// tree.Delete("a")
-	// tree.Print()
-	// tree.Delete("b")
-	// tree.Print()
+	tree, _ := StartNewTree(3, 3)
+	testkv := GenTestKeyAndValue(3)
+	for i := 0; i < len(testkv); i++ {
+		tree.Insert(testkv[i], testkv[i])
+	}
+	tree.Print()
+	for i := 0; i < len(testkv); i++ {
+		ky := testkv[i]
+		fmt.Println("ky: ", ky)
+		value := testkv[i]
+		v, ok := tree.Delete(ky)
+		if !ok {
+			t.Fatalf("value should exsit")
+		}
+		tree.Print()
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%v", ky, v)
+		}
+	}
+
 }

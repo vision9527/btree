@@ -53,8 +53,8 @@ func (b *BPlusTree) Insert(ky string, value interface{}) {
 	b.insert(key(ky), pointer)
 }
 
-func (b *BPlusTree) Delete(ky string) {
-	b.delete(key(ky))
+func (b *BPlusTree) Delete(ky string) (interface{}, bool) {
+	return b.delete(key(ky))
 }
 
 func (b *BPlusTree) Find(targetKey string) (interface{}, bool) {
@@ -417,14 +417,18 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 
 }
 
-func (b *BPlusTree) delete(ky key) {
+func (b *BPlusTree) delete(ky key) (interface{}, bool) {
 	leafNode := b.findLeafNode(ky)
 	ent, ok := leafNode.findRecord(ky)
 	if !ok {
-		return
+		return nil, false
 	}
 	b.deleteNode(leafNode, ky, ent)
-
+	v, ok := ent.(*entry)
+	if !ok {
+		panic("should be entry")
+	}
+	return v.value, true
 }
 func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 	nd.delete(ky, p)
