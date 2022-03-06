@@ -10,6 +10,7 @@ type node struct {
 	// 所以len(keys)=len(pointers)
 	pointers []interface{}
 	parent   *node
+	maxSize  int
 	// 最后一个指针
 	lastOrNextNode *node
 }
@@ -20,6 +21,62 @@ type entry struct {
 
 func (r *entry) toValue() string {
 	return fmt.Sprintf("%v", r.value)
+}
+
+// 删除key的同时删除pointer
+func (n *node) delete(targetKey key) {
+	if len(n.keys) == 0 {
+		return
+	}
+	// 需要删除key的索引,
+	// 删除相应的pointer索引：叶子节点index，内部节点index+1（内部节点只有在合并的时候才会有删除的情况）
+	var index int
+	for i, ky := range n.keys {
+		if ky.compare(targetKey) == 0 {
+			nd := n.pointers[i]
+			if n.isLeaf {
+				if _, ok := nd.(*entry); ok {
+					index = i
+					break
+				}
+				panic("should be entry")
+			} else {
+				if _, ok := nd.(*node); ok {
+					index = i
+					break
+				}
+				panic("should be node")
+			}
+
+		}
+	}
+	keys := n.keys[0:index]
+	if index+1 != len(n.keys) {
+		keys = append(keys, n.keys[index+1:]...)
+	}
+	n.keys = keys
+	if n.isLeaf {
+		pointers := n.pointers[0:index]
+		if index+1 != len(n.pointers) {
+			pointers = append(pointers, n.pointers[index+1:]...)
+		}
+		n.pointers = pointers
+	} else {
+		if index+1 == len(n.keys) {
+			n.lastOrNextNode = n.pointers[index].(*node)
+			n.pointers = n.pointers[0:index]
+		} else if index+1 == len(n.keys)-1 {
+			pointers := n.pointers[0 : index+1]
+			if index+1 != len(n.keys) {
+				n.pointers = pointers
+			}
+			n.pointers = pointers
+		} else {
+			pointers := n.pointers[0 : index+1]
+			pointers = append(pointers, n.pointers[index+2:]...)
+			n.pointers = pointers
+		}
+	}
 }
 
 func (n *node) findRecord(targetKey key) (interface{}, bool) {
@@ -78,6 +135,52 @@ func (n *node) insertNextAfterPrev(childKey key, prev, next *node) {
 
 }
 
+// 找到nd的兄弟节点
+func (nd *node) lookupSibling() (sibling *node, index int, ky key, isPrev bool) {
+	if nd.parent != nil {
+		index = -1
+		for i, pointer := range nd.parent.pointers {
+			n, ok := pointer.(*node)
+			if !ok {
+				panic("should be node")
+			}
+			if n == nd {
+				index = i
+				break
+			}
+		}
+		if index == -1 {
+			index = len(nd.parent.pointers) - 1
+			sibling = nd.parent.pointers[index].(*node)
+			isPrev = true
+			ky = nd.parent.keys[index]
+			return
+		}
+		// pointers里最后一个
+		if index == len(nd.parent.pointers)-1 {
+			sibling = nd.parent.lastOrNextNode
+			isPrev = false
+			ky = nd.parent.keys[index]
+			return
+		} else if index == 0 {
+			// pointers里第一个
+			index = index + 1
+			sibling = nd.parent.pointers[index].(*node)
+			isPrev = false
+			ky = nd.parent.keys[0]
+			return
+		} else {
+			// 默认用前一个
+			ky = nd.parent.keys[index]
+			index = index - 1
+			sibling = nd.parent.pointers[index].(*node)
+			isPrev = true
+			return
+		}
+	}
+	return
+}
+
 func (n *node) copy() *node {
 	nd := &node{
 		isLeaf:         n.isLeaf,
@@ -89,4 +192,13 @@ func (n *node) copy() *node {
 	nd.keys = append(nd.keys, n.keys...)
 	nd.pointers = append(nd.pointers, n.pointers...)
 	return nd
+}
+
+// 是否半满
+func (n *node) isHalf() bool {
+	return len(n.keys) >= n.maxSize/2
+}
+
+func (n *node) getHalf() int {
+	return n.maxSize / 2
 }

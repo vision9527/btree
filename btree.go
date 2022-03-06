@@ -6,15 +6,21 @@ import (
 	"strings"
 )
 
-const defaultLeafMaxSize = 200
+const defaultLeafMaxSize = 100
 const defaultInternalMaxSize = 100
 
 type BPlusTree struct {
-	// 叶子节点key最多数量, key半满条件: leafMaxSize/2，指针的数量: leafMaxSize+1, 最后一个指针在node的lastOrNextNode
+	// 叶子节点key最多数量:leafMaxSize, 叶子节点指针最多数量(degree): leafMaxSize+1
+	// key半满条件: leafMaxSize/2
+	// 指针的数量半满条件: leafMaxSize/2+1
+	// 最后一个指针在node的lastOrNextNode
 	leafMaxSize int
-	// 非叶子节点key最多数量, key半满条件: internalMaxSize/2，指针的数量: internalMaxSize+1, 最后一个指针在node的lastOrNextNode
+	// 内部节点key最多数量:internalMaxSize, 内部节点指针最多数量(degree): internalMaxSize+1
+	// key半满条件: leafMaxSize/2
+	// 指针的数量半满条件: leafMaxSize/2+1
+	// 最后一个指针在node的lastOrNextNode
 	internalMaxSize int
-	// 0个或者2-n个子节点
+	// 当根节点是非叶子节点时，key的数量可以是1-internalMaxSize，不需要满足半满条件
 	root *node
 	// 测试使用
 	*stat
@@ -47,8 +53,8 @@ func (b *BPlusTree) Insert(ky string, value interface{}) {
 	b.insert(key(ky), pointer)
 }
 
-func (b *BPlusTree) Delete(ky string) (value interface{}, err error) {
-	panic("wait for implement")
+func (b *BPlusTree) Delete(ky string) {
+	b.delete(key(ky))
 }
 
 func (b *BPlusTree) Find(targetKey string) (interface{}, bool) {
@@ -195,15 +201,17 @@ func (b *BPlusTree) makeEmptyLeafNode() *node {
 	return &node{
 		isLeaf:   true,
 		keys:     make([]key, 0, b.leafMaxSize),
-		pointers: make([]interface{}, 0, b.internalMaxSize),
+		pointers: make([]interface{}, 0, b.leafMaxSize),
+		maxSize:  b.leafMaxSize,
 	}
 }
 
 func (b *BPlusTree) makeEmptyInternalNode() *node {
 	return &node{
 		isLeaf:   false,
-		keys:     make([]key, 0, b.leafMaxSize),
+		keys:     make([]key, 0, b.internalMaxSize),
 		pointers: make([]interface{}, 0, b.internalMaxSize),
+		maxSize:  b.internalMaxSize,
 	}
 }
 
@@ -224,7 +232,7 @@ func (b *BPlusTree) insert(targetKey key, et *entry) {
 	if leafNode.updateRecord(targetKey, et) {
 		return
 	}
-	if len(leafNode.keys) < b.leafMaxSize {
+	if len(leafNode.keys) < leafNode.maxSize {
 		b.insertIntoLeaf(leafNode, targetKey, et)
 	} else {
 		// split
@@ -237,10 +245,10 @@ func (b *BPlusTree) insert(targetKey key, et *entry) {
 		leafNode.lastOrNextNode = siblingNode
 		leafNode.keys = make([]key, 0)
 		leafNode.pointers = make([]interface{}, 0)
-		leafNode.keys = append(leafNode.keys, tempNode.keys[0:b.leafMaxSize/2+1]...)
-		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:b.leafMaxSize/2+1]...)
-		siblingNode.keys = append(siblingNode.keys, tempNode.keys[b.leafMaxSize/2+1:]...)
-		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[b.leafMaxSize/2+1:]...)
+		leafNode.keys = append(leafNode.keys, tempNode.keys[0:leafNode.getHalf()+1]...)
+		leafNode.pointers = append(leafNode.pointers, tempNode.pointers[0:leafNode.getHalf()+1]...)
+		siblingNode.keys = append(siblingNode.keys, tempNode.keys[leafNode.getHalf()+1:]...)
+		siblingNode.pointers = append(siblingNode.pointers, tempNode.pointers[leafNode.getHalf()+1:]...)
 
 		childKey := siblingNode.keys[0]
 		b.insertIntoParent(leafNode, siblingNode, childKey)
@@ -321,7 +329,7 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 		return
 	}
 	parentNode := oldNode.parent
-	if len(parentNode.keys) < b.internalMaxSize {
+	if len(parentNode.keys) < parentNode.maxSize {
 		// insert (childKey, newNode) to parentNode after oldNode
 		parentNode.insertNextAfterPrev(childKey, oldNode, newNode)
 		newNode.parent = parentNode
@@ -336,9 +344,9 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 		parentNode.keys = make([]key, 0)
 		parentNode.pointers = make([]interface{}, 0)
 		siblingParentNode := b.makeEmptyInternalNode()
-		parentNode.keys = append(parentNode.keys, tempKeys[0:b.internalMaxSize/2]...)
+		parentNode.keys = append(parentNode.keys, tempKeys[0:parentNode.getHalf()]...)
 		// parentNode.pointers = append(parentNode.pointers, tempPointers[0:b.internalMaxSize/2]...)
-		for i := 0; i < b.internalMaxSize/2; i++ {
+		for i := 0; i < parentNode.getHalf(); i++ {
 			childPointer := tempPointers[i]
 			parentNode.pointers = append(parentNode.pointers, childPointer)
 			if childPointer == newNode {
@@ -353,7 +361,7 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 			}
 			p.parent = parentNode
 		}
-		lst, ok := tempPointers[b.internalMaxSize/2].(*node)
+		lst, ok := tempPointers[parentNode.getHalf()].(*node)
 		if !ok {
 			panic("should be *node")
 		}
@@ -366,9 +374,9 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 			oldNode.parent = parentNode
 		}
 
-		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[b.internalMaxSize/2+1:]...)
+		siblingParentNode.keys = append(siblingParentNode.keys, tempKeys[parentNode.getHalf()+1:]...)
 		// siblingParentNode.pointers = append(siblingParentNode.pointers, tempPointers[b.internalMaxSize/2+1:b.internalMaxSize+1]...)
-		for i := b.internalMaxSize/2 + 1; i < b.internalMaxSize+1; i++ {
+		for i := parentNode.getHalf() + 1; i < parentNode.maxSize+1; i++ {
 			childPointer := tempPointers[i]
 			siblingParentNode.pointers = append(siblingParentNode.pointers, childPointer)
 			if childPointer == newNode {
@@ -383,7 +391,7 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 			}
 			p.parent = siblingParentNode
 		}
-		lst, ok = tempPointers[b.internalMaxSize+1].(*node)
+		lst, ok = tempPointers[parentNode.maxSize+1].(*node)
 		if !ok {
 			panic("should be *node")
 		}
@@ -396,11 +404,94 @@ func (b *BPlusTree) insertIntoParent(oldNode, newNode *node, childKey key) {
 			oldNode.parent = siblingParentNode
 		}
 
-		childKeyTwo := tempKeys[b.internalMaxSize/2]
+		childKeyTwo := tempKeys[parentNode.getHalf()]
 		b.insertIntoParent(parentNode, siblingParentNode, childKeyTwo)
 	}
 
 }
 
-func (b *BPlusTree) delete(ky key, pointer interface{})                {}
-func (b *BPlusTree) deleteEntry(nd *node, ky key, pointer interface{}) {}
+func (b *BPlusTree) delete(ky key) {
+	leafNode := b.findLeafNode(ky)
+	_, ok := leafNode.findRecord(ky)
+	if !ok {
+		return
+	}
+	b.deleteNode(leafNode, ky)
+
+}
+func (b *BPlusTree) deleteNode(nd *node, ky key) {
+	nd.delete(ky)
+	if nd.parent == nil && len(nd.keys) == 0 {
+		b.root = nd.lastOrNextNode
+		return
+	}
+	if nd.parent == nil {
+		return
+	}
+	if !nd.isHalf() {
+		sibling, index, ky, isPrev := nd.lookupSibling()
+		if sibling == nil {
+			panic("should not be nil")
+		}
+		if len(sibling.keys)+len(nd.keys) <= nd.maxSize {
+			// Coalesce
+			if !isPrev {
+				sibling, nd = nd, sibling
+			}
+			if !sibling.isLeaf {
+				sibling.keys = append(sibling.keys, ky)
+				sibling.keys = append(sibling.keys, nd.keys...)
+				sibling.pointers = append(sibling.pointers, sibling.lastOrNextNode)
+				sibling.pointers = append(sibling.pointers, nd.pointers...)
+				sibling.lastOrNextNode = nd.lastOrNextNode
+			} else {
+				sibling.keys = append(sibling.keys, nd.keys...)
+				sibling.pointers = append(sibling.pointers, nd.pointers...)
+				sibling.lastOrNextNode = nd.lastOrNextNode
+			}
+			b.deleteNode(nd.parent, ky)
+			return
+		} else {
+			// Redistribution
+			if isPrev {
+				if !nd.isLeaf {
+					lastKey := sibling.keys[len(sibling.keys)-1]
+					lastPointer := sibling.lastOrNextNode
+					tempKeys := []key{lastKey}
+					tempPointers := []interface{}{lastPointer}
+					tempKeys = append(tempKeys, nd.keys...)
+					tempPointers = append(tempPointers, nd.pointers...)
+					nd.keys = tempKeys
+					nd.pointers = tempPointers
+					sibling.keys = sibling.keys[0 : len(sibling.keys)-1]
+					sibling.lastOrNextNode = sibling.pointers[len(sibling.pointers)-1].(*node)
+					nd.parent.keys[index] = lastKey
+				} else {
+					lastKey := sibling.keys[len(sibling.keys)-1]
+					lastPointer := sibling.keys[len(sibling.pointers)-1]
+					tempKeys := []key{lastKey}
+					tempPointers := []interface{}{lastPointer}
+					tempKeys = append(tempKeys, nd.keys...)
+					tempPointers = append(tempPointers, nd.pointers...)
+					nd.keys = tempKeys
+					nd.pointers = tempPointers
+					sibling.keys = sibling.keys[0 : len(sibling.keys)-1]
+					sibling.pointers = sibling.pointers[0 : len(sibling.pointers)-1]
+					nd.parent.keys[index] = lastKey
+				}
+			} else {
+				if !nd.isLeaf {
+					firstKey := sibling.keys[0]
+					firstPointer := sibling.pointers[0]
+					nd.keys = append(nd.keys, firstKey)
+					nd.pointers = append(nd.pointers, nd.lastOrNextNode)
+					nd.lastOrNextNode = firstPointer.(*node)
+					sibling.keys = sibling.keys[1:]
+					sibling.pointers = sibling.pointers[1:]
+					nd.parent.keys[index] = ky
+				}
+			}
+		}
+	}
+
+}
