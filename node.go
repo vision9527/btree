@@ -28,7 +28,6 @@ func (n *node) delete(targetKey key, p interface{}) {
 	if len(n.keys) == 0 {
 		return
 	}
-	fmt.Println("key: ", targetKey)
 	index := -1
 	for i, ky := range n.keys {
 		if ky.compare(targetKey) == 0 {
@@ -131,6 +130,9 @@ func (nd *node) lookupSibling() (sibling *node, index int, ky key, isPrev bool) 
 			}
 		}
 		if index == -1 {
+			fmt.Println("index: ", index, len(nd.parent.pointers))
+			fmt.Println("node: ", nd)
+			fmt.Println("node parent: ", nd.parent)
 			index = len(nd.parent.pointers) - 1
 			sibling = nd.parent.pointers[index].(*node)
 			isPrev = true

@@ -142,7 +142,10 @@ func (b *BPlusTree) Print() {
 	fmt.Println("----------------------------------------------------------------------------------------------------start print tree")
 	fmt.Printf("InternalMaxSize:%d LeafMaxSize: %d\n", b.internalMaxSize, b.leafMaxSize)
 	queue := make([]interface{}, 0)
-	queue = append(queue, b.root)
+	if b.root != nil {
+		queue = append(queue, b.root)
+	}
+
 	level := 0
 	for len(queue) != 0 {
 		level++
@@ -434,16 +437,20 @@ func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 	nd.delete(ky, p)
 	if nd.parent == nil && len(nd.keys) == 0 {
 		b.root = nd.lastOrNextNode
+		if b.root != nil {
+			b.root.parent = nil
+		}
 		return
 	}
 	if nd.parent == nil {
 		return
 	}
+	fmt.Println("ndndnd: ", nd)
 	if !nd.isHalf() {
 		sibling, index, ky, isPrev := nd.lookupSibling()
-		if sibling == nil {
-			panic("should not be nil")
-		}
+		// if sibling == nil {
+		// 	return
+		// }
 		if len(sibling.keys)+len(nd.keys) <= nd.maxSize {
 			// Coalesce
 			if !isPrev {
@@ -460,7 +467,7 @@ func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 				sibling.pointers = append(sibling.pointers, nd.pointers...)
 				sibling.lastOrNextNode = nd.lastOrNextNode
 			}
-			b.deleteNode(nd.parent, ky, nd)
+			b.deleteNode(sibling.parent, ky, nd)
 		} else {
 			// Redistribution
 			if isPrev {
@@ -478,7 +485,7 @@ func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 					nd.parent.keys[index] = lastKey
 				} else {
 					lastKey := sibling.keys[len(sibling.keys)-1]
-					lastPointer := sibling.keys[len(sibling.pointers)-1]
+					lastPointer := sibling.pointers[len(sibling.pointers)-1]
 					tempKeys := []key{lastKey}
 					tempPointers := []interface{}{lastPointer}
 					tempKeys = append(tempKeys, nd.keys...)
