@@ -225,6 +225,109 @@ func (b *BPlusTree) makeEmptyInternalNode() *node {
 	}
 }
 
+func print(prt bool, a ...interface{}) {
+	if prt {
+		fmt.Println(a...)
+	}
+}
+
+// 检查是否满足B+树(仅测试用)
+func (b *BPlusTree) check(prt bool) {
+	defer func() {
+		if err := recover(); err != nil {
+			b.Print()
+			panic(err)
+		}
+	}()
+	if b.root == nil {
+		return
+	}
+	if b.root.isLeaf {
+		for i, ky := range b.root.keys {
+			if i == 0 {
+				// fmt.Println("key: ", ky)
+				continue
+			}
+			if ky.compare(b.root.keys[i-1]) != 1 {
+				panic("b plus tree error")
+			}
+			// fmt.Println("key: ", ky)
+		}
+		return
+	}
+	for i, ky := range b.root.keys {
+		n := b.root.pointers[i].(*node)
+		if i == 0 {
+			b.checkTree(n, ky, prt)
+			print(prt, "key: ", ky)
+			continue
+		}
+		if ky.compare(b.root.keys[i-1]) == 1 {
+			b.checkTree(n, ky, prt)
+			print(prt, "key: ", ky)
+		} else {
+			panic("b plus tree error")
+		}
+	}
+	b.checkTree(b.root.lastOrNextNode, "", prt)
+}
+
+func (b *BPlusTree) checkTree(nd *node, lastKey key, prt bool) {
+	if !nd.isHalf() {
+		panic(fmt.Sprintf("nd should be half but: %d", len(nd.keys)))
+	}
+	if nd.isLeaf {
+		for i, ky := range nd.keys {
+			if lastKey.compare("") == 0 {
+				if i == 0 {
+					print(prt, "key: ", ky)
+					continue
+				}
+				if ky.compare(nd.keys[i-1]) != 1 {
+					panic("b plus tree error")
+				}
+				print(prt, "key: ", ky)
+			} else {
+				if i == 0 && lastKey.compare(ky) != 1 {
+					panic("b plus tree error")
+				}
+				if i == 0 {
+					print(prt, "key: ", ky)
+					continue
+				}
+				if lastKey.compare(ky) != 1 || ky.compare(nd.keys[i-1]) != 1 {
+					panic("b plus tree error")
+				}
+				print(prt, "key: ", ky)
+			}
+
+		}
+		return
+	}
+	for i, ky := range nd.keys {
+		n := nd.pointers[i].(*node)
+		if i == 0 {
+			b.checkTree(n, ky, prt)
+			print(prt, "key: ", ky)
+			continue
+		}
+		if lastKey.compare("") == 0 && ky.compare(nd.keys[i-1]) == 1 {
+			b.checkTree(n, ky, prt)
+			print(prt, "key: ", ky)
+		} else {
+			if lastKey.compare(ky) == 1 && ky.compare(nd.keys[i-1]) == 1 {
+				b.checkTree(n, ky, prt)
+				print(prt, "key: ", ky)
+			} else {
+				panic(fmt.Sprintf("b plus tree error lastKey:%s ky:%s i:%d", lastKey, ky, i))
+			}
+		}
+
+	}
+	b.checkTree(nd.lastOrNextNode, lastKey, prt)
+
+}
+
 func (b *BPlusTree) insert(targetKey key, et *entry) {
 	var leafNode *node
 	if b.root == nil {
@@ -434,6 +537,7 @@ func (b *BPlusTree) delete(ky key) (interface{}, bool) {
 	return v.value, true
 }
 func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
+	fmt.Println("deleteNode: ", nd, ky, p)
 	nd.delete(ky, p)
 	if nd.parent == nil && len(nd.keys) == 0 {
 		b.root = nd.lastOrNextNode
@@ -451,11 +555,13 @@ func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 		// if sibling == nil {
 		// 	return
 		// }
+		fmt.Printf("ndndnd:%v sibling:%v index:%d ky:%s isPrev:%v\n", nd, sibling, index, ky, isPrev)
 		if len(sibling.keys)+len(nd.keys) <= nd.maxSize {
 			// Coalesce
 			if !isPrev {
 				sibling, nd = nd, sibling
 			}
+			fmt.Printf("ndndnd:%v sibling:%v parent:%v\n", nd, sibling, sibling.parent)
 			if !sibling.isLeaf {
 				sibling.keys = append(sibling.keys, ky)
 				sibling.keys = append(sibling.keys, nd.keys...)
@@ -469,6 +575,7 @@ func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 			}
 			b.deleteNode(sibling.parent, ky, nd)
 		} else {
+			fmt.Println("Redistribution")
 			// Redistribution
 			if isPrev {
 				if !nd.isLeaf {

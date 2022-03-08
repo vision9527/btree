@@ -35,6 +35,7 @@ func (n *node) delete(targetKey key, p interface{}) {
 			break
 		}
 	}
+	fmt.Println("delete index: ", index)
 	tempKeys := n.keys[0:index]
 	if index < len(n.keys)-1 {
 		tempKeys = append(tempKeys, n.keys[index+1:]...)
@@ -130,7 +131,7 @@ func (nd *node) lookupSibling() (sibling *node, index int, ky key, isPrev bool) 
 			}
 		}
 		if index == -1 {
-			fmt.Println("index: ", index, len(nd.parent.pointers))
+			fmt.Println("Aindex: ", index, len(nd.parent.pointers))
 			fmt.Println("node: ", nd)
 			fmt.Println("node parent: ", nd.parent)
 			index = len(nd.parent.pointers) - 1
@@ -141,21 +142,30 @@ func (nd *node) lookupSibling() (sibling *node, index int, ky key, isPrev bool) 
 		}
 		// pointers里最后一个
 		if index == len(nd.parent.pointers)-1 {
+			fmt.Println("Bindex: ", index, len(nd.parent.pointers))
+			fmt.Println("node: ", nd)
+			fmt.Println("node parent: ", nd.parent)
 			sibling = nd.parent.lastOrNextNode
 			isPrev = false
 			ky = nd.parent.keys[index]
 			return
 		} else if index == 0 {
 			// pointers里第一个
-			index = index + 1
-			sibling = nd.parent.pointers[index].(*node)
+			fmt.Println("Cindex: ", index, len(nd.parent.pointers))
+			fmt.Println("node: ", nd)
+			fmt.Println("node parent: ", nd.parent)
+			// index = index + 1
+			sibling = nd.parent.pointers[index+1].(*node)
 			isPrev = false
 			ky = nd.parent.keys[0]
 			return
 		} else {
 			// 默认用前一个
-			ky = nd.parent.keys[index]
+			fmt.Println("Dindex: ", index, len(nd.parent.pointers))
+			fmt.Println("node: ", nd)
+			fmt.Println("node parent: ", nd.parent)
 			index = index - 1
+			ky = nd.parent.keys[index]
 			sibling = nd.parent.pointers[index].(*node)
 			isPrev = true
 			return
