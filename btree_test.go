@@ -150,6 +150,9 @@ func TestBPlusTreeFind_rootHaveChild(t *testing.T) {
 		[]string{"El Said_value", "Gold_value", "Katz_value", "Kim_value"})
 	nodeThree := makeTestLeafNode([]string{"Mozart", "Singh", "Srinivasan", "Wu"},
 		[]string{"Mozart_value", "Singh_value", "Srinivasan_value", "Wu_value"})
+	nodeOne.maxSize = 6
+	nodeTwo.maxSize = 6
+	nodeThree.maxSize = 6
 	tree.root.pointers[0] = nodeOne
 	tree.root.pointers[1] = nodeTwo
 	tree.root.lastOrNextNode = nodeThree
@@ -180,6 +183,7 @@ func TestBPlusTree_insertIntoLeaf(t *testing.T) {
 	tree, _ := StartNewTree(6, 6)
 	leafNode := makeTestLeafNode([]string{"key1", "key2", "key4", "key5"},
 		[]string{"key1_value", "key2_value", "key4_value", "key5_value"})
+	leafNode.maxSize = 6
 	targetKey := key("key3")
 	et := &entry{
 		value: "key3_value",
@@ -719,65 +723,16 @@ func TestBPlusTree_DeleteOne(t *testing.T) {
 }
 
 func TestBPlusTree_DeleteTwo(t *testing.T) {
-	t.Skip()
 	tree, _ := StartNewTree(3, 3)
 	testkv := GenTestKeyAndValue(3)
 	for i := 0; i < len(testkv); i++ {
 		tree.Insert(testkv[i], testkv[i])
+		tree.check(false)
 	}
 	tree.Print()
 	for i := 0; i < len(testkv); i++ {
 		ky := testkv[i]
 		value := testkv[i]
-		v, ok := tree.Delete(ky)
-		if !ok {
-			t.Fatalf("value should exsit")
-		}
-		if toString(v) != value {
-			t.Fatalf("value should be %s, but value:%v", ky, v)
-		}
-	}
-	tree.check(false)
-
-}
-
-func TestBPlusTree_DeleteThree(t *testing.T) {
-	t.Skip()
-	num := 100
-	for n := 4; n < num; n++ {
-		tree, _ := StartNewTree(n+10, n)
-		testkv := GenTestKeyAndValue(n)
-		ShuffleTestkv(testkv)
-		for i := 0; i < len(testkv); i++ {
-			ky := testkv[i]
-			value := testkv[i]
-			tree.Insert(ky, value)
-			v, ok := tree.Delete(ky)
-			if !ok {
-				t.Fatalf("value should exsit")
-			}
-			if toString(v) != value {
-				t.Fatalf("value should be %s, but value:%v", ky, v)
-			}
-		}
-	}
-}
-
-func TestBPlusTree_DeleteFour(t *testing.T) {
-	t.Skip()
-	tree, _ := StartNewTree(4, 4)
-	testkv := GenTestKeyAndValue(3)
-	// ShuffleTestkv(testkv)
-	// fmt.P
-	for i := 0; i < len(testkv); i++ {
-		tree.Insert(testkv[i], testkv[i])
-	}
-	tree.Print()
-	for i := 0; i < len(testkv); i++ {
-		ky := testkv[i]
-		value := testkv[i]
-		tree.Print()
-		fmt.Println("ky: ", ky)
 		v, ok := tree.Delete(ky)
 		tree.check(false)
 		if !ok {
@@ -790,13 +745,84 @@ func TestBPlusTree_DeleteFour(t *testing.T) {
 
 }
 
-func TestBPlusTree_DeleteFive(t *testing.T) {
-	t.Skip()
+func TestBPlusTree_DeleteThree(t *testing.T) {
 	num := 100
 	for n := 4; n < num; n++ {
 		tree, _ := StartNewTree(n+10, n)
 		testkv := GenTestKeyAndValue(n)
-		// ShuffleTestkv(testkv)
+		ShuffleTestkv(testkv)
+		for i := 0; i < len(testkv); i++ {
+			ky := testkv[i]
+			value := testkv[i]
+			tree.Insert(ky, value)
+			v, ok := tree.Delete(ky)
+			tree.check(false)
+			if !ok {
+				t.Fatalf("value should exsit")
+			}
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
+			}
+		}
+	}
+}
+
+func TestBPlusTree_DeleteFour(t *testing.T) {
+	tree, _ := StartNewTree(4, 4)
+	testkv := GenTestKeyAndValue(4)
+	ShuffleTestkv(testkv)
+	for i := 0; i < len(testkv); i++ {
+		tree.Insert(testkv[i], testkv[i])
+	}
+	tree.Print()
+	for i := 0; i < len(testkv); i++ {
+		ky := testkv[i]
+		value := testkv[i]
+		// tree.Print()
+		v, ok := tree.Delete(ky)
+		tree.check(false)
+		if !ok {
+			t.Fatalf("value should exsit")
+		}
+		if toString(v) != value {
+			t.Fatalf("value should be %s, but value:%v", ky, v)
+		}
+	}
+
+	num := 100
+	for n := 4; n < num; n++ {
+		tree, _ := StartNewTree(4, 4)
+		testkv := GenTestKeyAndValue(n)
+		ShuffleTestkv(testkv)
+		for i := 0; i < len(testkv); i++ {
+			ky := testkv[i]
+			value := testkv[i]
+			tree.Insert(ky, value)
+		}
+		for i := 0; i < len(testkv); i++ {
+			ky := testkv[i]
+			value := testkv[i]
+			// tree.Print()
+			v, ok := tree.Delete(ky)
+			tree.check(false)
+			if !ok {
+				tree.Print()
+				t.Fatalf("value should exsit")
+			}
+			if toString(v) != value {
+				t.Fatalf("value should be %s, but value:%v", ky, v)
+			}
+		}
+	}
+
+}
+
+func TestBPlusTree_DeleteFive(t *testing.T) {
+	num := 100
+	for n := 4; n < num; n++ {
+		tree, _ := StartNewTree(n, n)
+		testkv := GenTestKeyAndValue(n)
+		ShuffleTestkv(testkv)
 		for i := 0; i < len(testkv); i++ {
 			ky := testkv[i]
 			value := testkv[i]
@@ -806,9 +832,9 @@ func TestBPlusTree_DeleteFive(t *testing.T) {
 		for i := 0; i < len(testkv); i++ {
 			ky := testkv[i]
 			value := testkv[i]
-			tree.Print()
+			// tree.Print()
 			v, ok := tree.Delete(ky)
-			fmt.Println("ky: ", ky)
+			tree.check(false)
 			if !ok {
 				tree.Print()
 				t.Fatalf("value should exsit")
