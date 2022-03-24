@@ -1,39 +1,128 @@
-# B+树理论与实现
-#### 1、B+树特点
+## Go implementation of B+ tree
 
-1. 平衡多叉树，从根节点到所有叶子节点的高度相同
-1. 叶子节点之间通过指针互连，方便遍历叶子节点
-#### 2、B+树结构
-1. 节点：由**索引key**和**值pointer**组成，每个节点都保存在一个磁盘的block上，一次IO读取一个block
-1. 内部节点组成
-    * 内部节点的元素为**索引key**和关联的**子节点指针**
-1. 叶子节点组成
-    * 叶子节点的元素为**索引key**和**实际数据或指向实际数据的地址**
-    * 兄弟叶子节点之间通过指针互连
-1. 左子树总是比右子树小，每个节点内部的索引key都是有序排列
+This is a go implementation of B plus tree. The algorithm is from Database System Concepts 7th Edition Chapter 14.
 
+You can submit issues if you have any question.
 
-![B+树数据结构图示](./btree.png)
+Welcome to submit mr too.
 
-#### 3、节点大小
-1. key和pointer数量关系
-    * key: n
-    * pointer: n + 1
-1. 如何计算n？
-    * 内部节点：假设，n个索引，n+1指针，block大小4096B，一个指针4B，一个索引4B
-        * 4\*n+4\*(n+1) = 4096
-        * n = 512
-    * 叶子节点：假设，n个索引，n+1指针，block大小4096B，一个数据64B，一个索引4B
-        * 64\*n+4\*(n+1) = 4096
-        * n = 60
-1. 半满条件
-    * n/2+1
+## Getting Started
+### Installing
+```$ go get github.com/vision9527/btree```
 
-1. 一般3层高度的B+树即可保存千万级别的数据，如何计算一颗B+树能保存的数据量？
-    * 根据以上的计算数据可推出，512 * 512 * 60 = 15728640
-    * 约保存1千万左右数据
+### Using
+```go
+package main
 
-#### 4. mysql选择B+树而不是B树原因
-1. B+树查询在范围查询效率更高，B+树在范围查询可以根据叶子节点的链接直接顺序遍历，B树需要遍历完子树才能完成范围查找，访问的磁盘IO次数更多
-1. B+树查询效率更稳定，B+树每次访问数据都会到达叶子节点，查询时间稳定，而B树访问的数据不确定在第几层所以查询效率不太稳定
-1. B树每个节点都包含数据，因此节点的大小比B+树的节点更大，导致B树比B+树高度更高，查询时效率更低，并且B+树的内部节点只有索引，因此可以保存更多的索引
+import (
+	"fmt"
+
+	"github.com/vision9527/btree"
+)
+
+func main() {
+	tree, _ := btree.StartDefaultNewTree()
+	k := "a"
+	v := "ack"
+	tree.Insert(k, v)
+	value, ok := tree.Find(k)
+	fmt.Println("value: ", value, ok)
+	tree.Insert("b", "bson")
+	tree.Insert("c", "canal")
+	tree.Insert("d", "django")
+	values := tree.FindRange("a", "c")
+	fmt.Println("values: ", values)
+}
+```
+
+### View the process of insert
+```go
+package main
+
+import (
+	"github.com/vision9527/btree"
+)
+
+func main() {
+	tree, _ := btree.StartNewTree(3, 3)
+	tree.Insert("a", "a")
+	tree.Print()
+	tree.Insert("b", "b")
+	tree.Print()
+	tree.Insert("c", "c")
+	tree.Print()
+	tree.Insert("d", "d")
+	tree.Print()
+	tree.Insert("e", "e")
+	tree.Print()
+	tree.Insert("f", "f")
+	tree.Print()
+	tree.Insert("g", "g")
+	tree.Print()
+	tree.Insert("h", "h")
+	tree.Print()
+	tree.Insert("i", "i")
+	tree.Print()
+	tree.Insert("j", "j")
+	tree.Print()
+	tree.Insert("k", "k")
+	tree.Print()
+	tree.Insert("l", "l")
+	tree.Print()
+	tree.Insert("m", "m")
+	tree.Print()
+	tree.Insert("n", "n")
+	tree.Print()
+}
+
+```
+![insert](./doc/the_process_of_insert.jpg)
+
+### View the process of delete
+```go
+package main
+
+import (
+	"github.com/vision9527/btree"
+)
+
+func main() {
+	tree, _ := btree.StartNewTree(3, 3)
+	tree.Insert("a", "a")
+	tree.Insert("b", "b")
+	tree.Insert("c", "c")
+	tree.Insert("d", "d")
+	tree.Insert("e", "e")
+	tree.Insert("f", "f")
+	tree.Insert("g", "g")
+	tree.Insert("h", "h")
+	tree.Insert("i", "i")
+	tree.Insert("j", "j")
+	tree.Insert("k", "k")
+	tree.Insert("l", "l")
+	tree.Insert("m", "m")
+	tree.Insert("n", "n")
+	tree.Print()
+	tree.Delete("a")
+	tree.Print()
+	tree.Delete("h")
+	tree.Print()
+	tree.Delete("g")
+	tree.Print()
+	tree.Delete("b")
+	tree.Print()
+	tree.Delete("c")
+	tree.Print()
+	tree.Delete("a")
+	tree.Print()
+	tree.Delete("l")
+	tree.Print()
+	tree.Delete("g")
+	tree.Print()
+	tree.Delete("n")
+	tree.Print()
+	tree.Delete("k")
+	tree.Print()
+}
+```
+![delete](./doc/the_process_of_delete.jpg)
