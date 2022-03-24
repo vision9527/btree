@@ -802,7 +802,6 @@ func TestBPlusTree_DeleteFour(t *testing.T) {
 		for i := 0; i < len(testkv); i++ {
 			ky := testkv[i]
 			value := testkv[i]
-			// tree.Print()
 			v, ok := tree.Delete(ky)
 			tree.check(false)
 			if !ok {
