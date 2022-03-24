@@ -2,7 +2,7 @@
 
 This is a go implementation of B plus tree. The algorithm is from Database System Concepts 7th Edition Chapter 14.
 
-You can submit issues if you have any question.
+You can submit issues if you have any questions.
 
 Welcome to submit mr too.
 
@@ -35,7 +35,7 @@ func main() {
 }
 ```
 
-### View the process of insert
+### Viewing the process of insert
 ```go
 package main
 
@@ -78,7 +78,7 @@ func main() {
 ```
 ![insert](./doc/the_process_of_insert.jpg)
 
-### View the process of delete
+### Viewing the process of delete
 ```go
 package main
 
