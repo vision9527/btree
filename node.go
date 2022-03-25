@@ -182,3 +182,21 @@ func (n *node) isHalf() bool {
 func (n *node) getHalf() int {
 	return n.maxSize / 2
 }
+
+// 从此节点检查key顺序
+func (n *node) checkOrder() {
+	if !n.isLeaf {
+		panic("only leaf node for use")
+	}
+	currentNode := n
+	lastKey := key("")
+	for currentNode != nil {
+		for _, k := range currentNode.keys {
+			if k.compare(lastKey) < 1 {
+				panic("wrong key order")
+			}
+			lastKey = k
+		}
+		currentNode = currentNode.lastOrNextNode
+	}
+}

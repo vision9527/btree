@@ -30,19 +30,23 @@ func StartNewTree(leafMaxSize, internalMaxSize int) (*BPlusTree, error) {
 	if leafMaxSize < 3 || internalMaxSize < 3 {
 		return nil, errors.New("need more than 2")
 	}
-	return &BPlusTree{
+	tree := &BPlusTree{
 		leafMaxSize:     leafMaxSize,
 		internalMaxSize: internalMaxSize,
 		stat:            new(stat),
-	}, nil
+	}
+	tree.root = tree.makeEmptyLeafNode()
+	return tree, nil
 }
 
 func StartDefaultNewTree() (*BPlusTree, error) {
-	return &BPlusTree{
+	tree := &BPlusTree{
 		leafMaxSize:     defaultLeafMaxSize,
 		internalMaxSize: defaultInternalMaxSize,
 		stat:            new(stat),
-	}, nil
+	}
+	tree.root = tree.makeEmptyLeafNode()
+	return tree, nil
 }
 
 // 功能接口
@@ -387,9 +391,6 @@ func (b *BPlusTree) insert(targetKey key, et *entry) {
 
 func (b *BPlusTree) findFirstLeafNode() *node {
 	currentNode := b.root
-	if currentNode == nil {
-		panic("findFirstLeafNode should not be nil")
-	}
 	for currentNode != nil {
 		if currentNode.isLeaf {
 			break
@@ -560,6 +561,8 @@ func (b *BPlusTree) deleteNode(nd *node, ky key, p interface{}) {
 		b.root = nd.lastOrNextNode
 		if b.root != nil {
 			b.root.parent = nil
+		} else {
+			b.root = b.makeEmptyLeafNode()
 		}
 		return
 	}
