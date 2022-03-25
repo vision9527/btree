@@ -176,7 +176,7 @@ func (n *node) copy() *node {
 
 // 是否半满
 func (n *node) isHalf() bool {
-	return len(n.keys) >= n.maxSize/2
+	return len(n.keys) >= n.getHalf()
 }
 
 func (n *node) getHalf() int {

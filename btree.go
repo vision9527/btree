@@ -16,8 +16,8 @@ type BPlusTree struct {
 	// 最后一个指针在node的lastOrNextNode
 	leafMaxSize int
 	// 内部节点key最多数量:internalMaxSize, 内部节点指针最多数量(degree): internalMaxSize+1
-	// key半满条件: leafMaxSize/2
-	// 指针的数量半满条件: leafMaxSize/2+1
+	// key半满条件: internalMaxSize/2
+	// 指针的数量半满条件: internalMaxSize/2+1
 	// 最后一个指针在node的lastOrNextNode
 	internalMaxSize int
 	// 当根节点是非叶子节点时，key的数量可以是1-internalMaxSize，不需要满足半满条件
@@ -107,6 +107,10 @@ func (b *BPlusTree) CountNode() {
 	queue = append(queue, b.root)
 	b.level = 0
 	b.nodeCount = 0
+	b.kvCount = 0
+	if b.root == nil {
+		return
+	}
 	for len(queue) != 0 {
 		b.level++
 		size := len(queue)
@@ -121,6 +125,7 @@ func (b *BPlusTree) CountNode() {
 				panic("should node")
 			}
 			if nd.isLeaf {
+				b.kvCount = b.kvCount + len(nd.keys)
 				continue
 			} else {
 				if len(nd.pointers) != 0 && !nd.isLeaf {
@@ -140,8 +145,10 @@ func (b *BPlusTree) CountNode() {
 
 // 层序打印树结构
 func (b *BPlusTree) Print() {
+	b.CountNode()
 	fmt.Println("----------------------------------------------------------------------------------------------------start print tree")
-	fmt.Printf("InternalMaxSize:%d LeafMaxSize: %d\n", b.internalMaxSize, b.leafMaxSize)
+	fmt.Printf("Internal Size: min=%d max=%d, Leaf Size: min=%d max=%d, Total Node Size:%d, Total K/V Size:%d\n", b.internalMaxSize/2, b.internalMaxSize, b.leafMaxSize/2,
+		b.leafMaxSize, b.GetNodeCount(), b.GetKeyCount())
 	queue := make([]interface{}, 0)
 	if b.root != nil {
 		queue = append(queue, b.root)
@@ -156,7 +163,7 @@ func (b *BPlusTree) Print() {
 			nodeI := queue[i]
 			if nodeI == nil {
 				str = strings.Trim(str, " &&")
-				str = str + " --- "
+				str = str + " - "
 				continue
 			}
 			nd, ok := nodeI.(*node)
@@ -167,7 +174,7 @@ func (b *BPlusTree) Print() {
 				if str == "" {
 					str = fmt.Sprintf("%v", nd.keys)
 				} else {
-					if strings.HasSuffix(str, " --- ") {
+					if strings.HasSuffix(str, " - ") {
 						str = str + fmt.Sprintf("%v", nd.keys)
 					} else {
 						str = str + "," + fmt.Sprintf("%v", nd.keys)
@@ -196,7 +203,7 @@ func (b *BPlusTree) Print() {
 			}
 		}
 		str = strings.Trim(str, " &&")
-		str = strings.Trim(str, "---")
+		str = strings.Trim(str, "-")
 		fmt.Printf("Level %d: %s\n", level, str)
 		if len(queue) > size {
 			queue = queue[size:]
@@ -283,8 +290,8 @@ func (b *BPlusTree) checkTree(nd *node, lastKey key, prt bool) {
 	if !nd.isHalf() {
 		panic(fmt.Sprintf("nd should be half but: %d", len(nd.keys)))
 	}
-	if len(nd.keys) > nd.maxSize {
-		panic("b plus tree node wrong max size")
+	if len(nd.keys) > nd.maxSize || len(nd.keys) < nd.getHalf() {
+		panic("b plus tree node wrong size")
 	}
 	if nd.isLeaf {
 		for i, ky := range nd.keys {
@@ -380,6 +387,9 @@ func (b *BPlusTree) insert(targetKey key, et *entry) {
 
 func (b *BPlusTree) findFirstLeafNode() *node {
 	currentNode := b.root
+	if currentNode == nil {
+		panic("findFirstLeafNode should not be nil")
+	}
 	for currentNode != nil {
 		if currentNode.isLeaf {
 			break
