@@ -1,6 +1,6 @@
 ## Go implementation of B+ tree
 
-This is a go implementation of B plus tree. The algorithm is from the chapter 14 of Database System Concepts 7th Edition.
+This is a pure go implementation of B plus tree in memory. It's a toy project and not recommended to be used in production environment. The algorithm is from the chapter 14 of Database System Concepts 7th Edition.
 
 You can submit issues if you have any questions.
 
